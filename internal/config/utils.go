@@ -28,6 +28,10 @@ func (cfg Config) GetFullScreenDiffPagerEnv() []string {
 	return env
 }
 
+func (cfg Config) RunDiffPagerInBackground() bool {
+	return cfg.Pager.DiffMode == "background"
+}
+
 func (cfg PrsSectionConfig) ToSectionConfig() SectionConfig {
 	return SectionConfig{
 		Title:   cfg.Title,

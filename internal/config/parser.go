@@ -234,7 +234,8 @@ type Keybindings struct {
 }
 
 type Pager struct {
-	Diff string `yaml:"diff"`
+	Diff     string `yaml:"diff"`
+	DiffMode string `yaml:"diffMode"`
 }
 
 type Color string
