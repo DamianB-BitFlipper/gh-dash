@@ -17,6 +17,7 @@ import (
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/notificationrow"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/section"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/table"
+	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/tasks"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/keys"
@@ -368,6 +369,18 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 				m.Table.SetRows(m.BuildRows())
 				log.Debug("Updated notification", "id", msg.Id, "count",
 					msg.NewCommentsCount, "state", msg.SubjectState, "actor", msg.Actor)
+				break
+			}
+		}
+
+	case tasks.UpdatePRMsg:
+		for i := range m.Notifications {
+			if m.Notifications[i].GetSubjectType() == "PullRequest" &&
+				m.Notifications[i].GetNumber() == msg.PrNumber {
+				if msg.IsDraft != nil {
+					m.Notifications[i].IsDraft = *msg.IsDraft
+				}
+				m.Table.SetRows(m.BuildRows())
 				break
 			}
 		}

@@ -54,7 +54,6 @@ func TestMsgToActionReturnsCorrectActions(t *testing.T) {
 		{"comment key", 'c', PRActionComment},
 		{"diff key", 'd', PRActionDiff},
 		{"checkout key C", 'C', PRActionCheckout},
-		{"checkout key space", tea.KeySpace, PRActionCheckout},
 		{"close key", 'x', PRActionClose},
 		{"ready key", 'W', PRActionReady},
 		{"reopen key", 'X', PRActionReopen},
@@ -147,7 +146,7 @@ func TestUpdateHandlesSidebarTabNavigation(t *testing.T) {
 		m.carousel.MoveRight()
 		initialTab := m.carousel.SelectedItem()
 
-		msg := tea.KeyPressMsg{Text: "left"}
+		msg := tea.KeyPressMsg{Text: "ctrl+left"}
 		m, _ = m.Update(msg)
 
 		require.NotEqual(t, initialTab, m.carousel.SelectedItem(),
@@ -158,7 +157,7 @@ func TestUpdateHandlesSidebarTabNavigation(t *testing.T) {
 		m := newTestModelForAction(t)
 		initialTab := m.carousel.SelectedItem()
 
-		msg := tea.KeyPressMsg{Text: "right"}
+		msg := tea.KeyPressMsg{Text: "ctrl+right"}
 		m, _ = m.Update(msg)
 
 		require.NotEqual(t, initialTab, m.carousel.SelectedItem(),

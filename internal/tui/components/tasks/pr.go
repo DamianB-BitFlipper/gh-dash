@@ -25,10 +25,16 @@ type UpdatePRMsg struct {
 	IsClosed         *bool
 	NewComment       *data.Comment
 	ReadyForReview   *bool
+	IsDraft          *bool
 	IsMerged         *bool
 	AddedAssignees   *data.Assignees
 	RemovedAssignees *data.Assignees
 	Labels           *data.PRLabels
+}
+
+type DraftablePRData interface {
+	data.RowData
+	GetIsDraft() bool
 }
 
 type UpdateBranchMsg struct {
@@ -162,6 +168,49 @@ func PRReady(ctx *context.ProgramContext, section SectionIdentifier, pr data.Row
 			}
 		},
 	})
+}
+
+func TogglePRDraft(ctx *context.ProgramContext, section SectionIdentifier, pr DraftablePRData) tea.Cmd {
+	return fireTask(ctx, buildTogglePRDraftTask(section, pr))
+}
+
+func buildTogglePRDraftTask(section SectionIdentifier, pr DraftablePRData) GitHubTask {
+	prNumber := pr.GetNumber()
+	isDraft := pr.GetIsDraft()
+	args := []string{
+		"pr",
+		"ready",
+	}
+	if !isDraft {
+		args = append(args, "--undo")
+	}
+	args = append(args,
+		fmt.Sprint(prNumber),
+		"-R",
+		pr.GetRepoNameWithOwner(),
+	)
+
+	newIsDraft := !isDraft
+	startText := fmt.Sprintf("Marking PR #%d as ready for review", prNumber)
+	finishedText := fmt.Sprintf("PR #%d has been marked as ready for review", prNumber)
+	if newIsDraft {
+		startText = fmt.Sprintf("Converting PR #%d to draft", prNumber)
+		finishedText = fmt.Sprintf("PR #%d has been converted to draft", prNumber)
+	}
+
+	return GitHubTask{
+		Id:           buildTaskId("pr_toggle_draft", prNumber),
+		Args:         args,
+		Section:      section,
+		StartText:    startText,
+		FinishedText: finishedText,
+		Msg: func(c *exec.Cmd, err error) tea.Msg {
+			return UpdatePRMsg{
+				PrNumber: prNumber,
+				IsDraft:  utils.BoolPtr(newIsDraft),
+			}
+		},
+	}
 }
 
 func MergePR(ctx *context.ProgramContext, section SectionIdentifier, pr data.RowData) tea.Cmd {

@@ -24,6 +24,10 @@ func (data Data) GetNumber() int {
 	return data.Primary.Number
 }
 
+func (data Data) GetIsDraft() bool {
+	return data.Primary.IsDraft
+}
+
 func (data Data) GetUrl() string {
 	return data.Primary.Url
 }

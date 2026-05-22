@@ -34,12 +34,12 @@ type PRKeyMap struct {
 
 var PRKeys = PRKeyMap{
 	PrevSidebarTab: key.NewBinding(
-		key.WithKeys("left"),
-		key.WithHelp("←", "previous sidebar tab"),
+		key.WithKeys("ctrl+left"),
+		key.WithHelp("Ctrl+←", "previous sidebar tab"),
 	),
 	NextSidebarTab: key.NewBinding(
-		key.WithKeys("right"),
-		key.WithHelp("→", "next sidebar tab"),
+		key.WithKeys("ctrl+right"),
+		key.WithHelp("Ctrl+→", "next sidebar tab"),
 	),
 	Approve: key.NewBinding(
 		key.WithKeys("v"),
@@ -70,8 +70,8 @@ var PRKeys = PRKeyMap{
 		key.WithHelp("b", "copy branch"),
 	),
 	Checkout: key.NewBinding(
-		key.WithKeys("C", "space"),
-		key.WithHelp("C/Space", "checkout"),
+		key.WithKeys("C"),
+		key.WithHelp("C", "checkout"),
 	),
 	Close: key.NewBinding(
 		key.WithKeys("x"),
@@ -87,7 +87,7 @@ var PRKeys = PRKeyMap{
 	),
 	Ready: key.NewBinding(
 		key.WithKeys("W"),
-		key.WithHelp("W", "ready for review"),
+		key.WithHelp("W", "toggle draft/ready"),
 	),
 	Merge: key.NewBinding(
 		key.WithKeys("m"),
@@ -117,6 +117,7 @@ var PRKeys = PRKeyMap{
 
 func PRFullHelp() []key.Binding {
 	return []key.Binding{
+		PRKeys.CopyBranch,
 		PRKeys.PrevSidebarTab,
 		PRKeys.NextSidebarTab,
 		PRKeys.Approve,
@@ -125,7 +126,6 @@ func PRFullHelp() []key.Binding {
 		PRKeys.Label,
 		PRKeys.Comment,
 		PRKeys.Diff,
-		PRKeys.CopyBranch,
 		PRKeys.Checkout,
 		PRKeys.Close,
 		PRKeys.Ready,

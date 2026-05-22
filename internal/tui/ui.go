@@ -277,22 +277,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmd = m.onViewedRowChanged()
 			}
 
-		case key.Matches(msg, m.keys.TogglePreview):
-			m.sidebar.IsOpen = !m.sidebar.IsOpen
-			m.syncMainContentDimensions()
-
-		case key.Matches(msg, m.keys.TogglePreviewPosition):
-			if m.sidebar.IsOpen {
-				if m.ctx.PreviewPosition == "right" {
-					m.positionOverride = "bottom"
-				} else {
-					m.positionOverride = "right"
-				}
-				m.syncMainContentDimensions()
-				m.syncProgramContext()
-				cmd := m.syncSidebar()
-				cmds = append(cmds, cmd)
-			}
+		case key.Matches(msg, m.keys.CyclePreview):
+			cmds = append(cmds, m.cyclePreview())
 
 		case key.Matches(msg, m.keys.Refresh):
 			if currSection != nil {
@@ -444,8 +430,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, cmd
 
 			case key.Matches(msg, keys.PRKeys.Ready):
-				if currRowData != nil {
-					cmd = m.promptConfirmation(currSection, "ready")
+				if pr, ok := currRowData.(tasks.DraftablePRData); ok && currSection != nil {
+					sid := tasks.SectionIdentifier{Id: currSection.GetId(), Type: currSection.GetType()}
+					cmd = tasks.TogglePRDraft(m.ctx, sid, pr)
 				}
 				return m, cmd
 
@@ -578,7 +565,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							return m, cmd
 
 						case prview.PRActionReady:
-							cmd = m.promptConfirmationForNotificationPR("ready")
+							if pr := m.notificationView.GetSubjectPR(); pr != nil {
+								sid := tasks.SectionIdentifier{Id: m.currSectionId, Type: notificationssection.SectionType}
+								cmd = tasks.TogglePRDraft(m.ctx, sid, pr)
+							}
 							return m, cmd
 
 						case prview.PRActionReopen:
@@ -733,6 +723,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			scmd := m.updateSection(msg.SectionId, msg.SectionType, msg.Msg)
 			cmds = append(cmds, scmd)
+
+			if prMsg, ok := msg.Msg.(tasks.UpdatePRMsg); ok && msg.SectionType == notificationssection.SectionType {
+				if pr := m.notificationView.GetSubjectPR(); pr != nil && pr.GetNumber() == prMsg.PrNumber {
+					if prMsg.IsDraft != nil {
+						pr.Primary.IsDraft = *prMsg.IsDraft
+						pr.Enriched.IsDraft = *prMsg.IsDraft
+					}
+				}
+			}
 
 			syncCmd := m.syncSidebar()
 			cmds = append(cmds, syncCmd)
@@ -1293,6 +1292,29 @@ func (m *Model) syncMainContentDimensions() {
 		m.ctx.MainContentWidth = m.ctx.ScreenWidth - m.ctx.DynamicPreviewWidth
 		m.ctx.DynamicPreviewHeight = 0
 	}
+}
+
+func (m *Model) cyclePreview() tea.Cmd {
+	if !m.sidebar.IsOpen {
+		m.sidebar.IsOpen = true
+		m.positionOverride = "right"
+		m.syncMainContentDimensions()
+		m.syncProgramContext()
+		return m.syncSidebar()
+	}
+
+	if m.ctx.PreviewPosition == "right" {
+		m.positionOverride = "bottom"
+		m.syncMainContentDimensions()
+		m.syncProgramContext()
+		return m.syncSidebar()
+	}
+
+	m.sidebar.IsOpen = false
+	m.positionOverride = ""
+	m.syncMainContentDimensions()
+	m.syncProgramContext()
+	return nil
 }
 
 func (m *Model) openSidebarForPRInput(setFunc func(bool) tea.Cmd) tea.Cmd {
@@ -1985,7 +2007,7 @@ func (m *Model) executeNotificationAction(action string) tea.Cmd {
 		}
 	case "pr_ready":
 		if pr != nil {
-			return tasks.PRReady(m.ctx, sid, pr)
+			return tasks.TogglePRDraft(m.ctx, sid, pr)
 		}
 	case "pr_merge":
 		if pr != nil {

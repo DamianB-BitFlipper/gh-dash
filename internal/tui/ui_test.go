@@ -342,7 +342,7 @@ func TestNotificationView_PRViewTabNavigation(t *testing.T) {
 	initialTab := m.prView.SelectedTab()
 
 	// Send "next tab" key message
-	msg := tea.KeyPressMsg{Text: "right"}
+	msg := tea.KeyPressMsg{Text: "ctrl+right"}
 	newModel, _ := m.Update(msg)
 	m = newModel.(Model)
 
@@ -352,7 +352,7 @@ func TestNotificationView_PRViewTabNavigation(t *testing.T) {
 
 	// Now test going back
 	currentTab := m.prView.SelectedTab()
-	msg = tea.KeyPressMsg{Text: "left"}
+	msg = tea.KeyPressMsg{Text: "ctrl+left"}
 	newModel, _ = m.Update(msg)
 	m = newModel.(Model)
 
@@ -1194,7 +1194,7 @@ func TestSyncMainContentDimensions_BottomMode(t *testing.T) {
 	}
 }
 
-func TestTogglePreviewPosition_NoOpWhenSidebarClosed(t *testing.T) {
+func TestCyclePreviewOpensRightWhenClosed(t *testing.T) {
 	cfg, err := config.ParseConfig(config.Location{
 		ConfigFlag:       "../config/testdata/test-config.yml",
 		SkipGlobalConfig: true,
@@ -1243,31 +1243,21 @@ func TestTogglePreviewPosition_NoOpWhenSidebarClosed(t *testing.T) {
 
 	// Set initial dimensions via syncMainContentDimensions
 	m.syncMainContentDimensions()
-	initialMainWidth := m.ctx.MainContentWidth
-	initialMainHeight := m.ctx.MainContentHeight
-	initialPreviewWidth := m.ctx.DynamicPreviewWidth
-	initialPreviewHeight := m.ctx.DynamicPreviewHeight
-	initialPosition := m.ctx.PreviewPosition
+	// Pressing p when closed should open the right split.
+	msg := tea.KeyPressMsg{Text: "p"}
+	updated, _ := m.Update(msg)
+	m = updated.(Model)
 
-	// Pressing P when sidebar is closed should be a no-op
-	msg := tea.KeyPressMsg{Text: "P"}
-	_, _ = m.Update(msg)
-
-	require.Equal(t, initialMainWidth, m.ctx.MainContentWidth,
-		"MainContentWidth should not change when sidebar is closed")
-	require.Equal(t, initialMainHeight, m.ctx.MainContentHeight,
-		"MainContentHeight should not change when sidebar is closed")
-	require.Equal(t, initialPreviewWidth, m.ctx.DynamicPreviewWidth,
-		"DynamicPreviewWidth should not change when sidebar is closed")
-	require.Equal(t, initialPreviewHeight, m.ctx.DynamicPreviewHeight,
-		"DynamicPreviewHeight should not change when sidebar is closed")
-	require.Equal(t, initialPosition, m.ctx.PreviewPosition,
-		"PreviewPosition should not change when sidebar is closed")
-	require.Equal(t, "", m.positionOverride,
-		"positionOverride should remain empty when sidebar is closed")
+	require.True(t, m.sidebar.IsOpen, "sidebar should open")
+	require.Equal(t, "right", m.positionOverride,
+		"positionOverride should be right after opening from hidden")
+	require.Equal(t, "right", m.ctx.PreviewPosition,
+		"PreviewPosition should be right after opening from hidden")
+	require.Greater(t, m.ctx.DynamicPreviewWidth, 0,
+		"DynamicPreviewWidth should be set in right mode")
 }
 
-func TestTogglePreviewPosition_TogglesWhenSidebarOpen(t *testing.T) {
+func TestCyclePreviewCyclesRightBottomHidden(t *testing.T) {
 	cfg, err := config.ParseConfig(config.Location{
 		ConfigFlag:       "../config/testdata/test-config.yml",
 		SkipGlobalConfig: true,
@@ -1316,8 +1306,8 @@ func TestTogglePreviewPosition_TogglesWhenSidebarOpen(t *testing.T) {
 	m.syncMainContentDimensions()
 	require.Equal(t, "right", m.ctx.PreviewPosition)
 
-	// Press P to toggle to bottom
-	msg := tea.KeyPressMsg{Text: "P"}
+	// Press p to cycle from right to bottom.
+	msg := tea.KeyPressMsg{Text: "p"}
 	updated, _ := m.Update(msg)
 	m = updated.(Model)
 
@@ -1330,18 +1320,19 @@ func TestTogglePreviewPosition_TogglesWhenSidebarOpen(t *testing.T) {
 	require.Greater(t, m.ctx.DynamicPreviewHeight, 0,
 		"DynamicPreviewHeight should be set in bottom mode")
 
-	// Press P again to toggle back to right
+	// Press p again to cycle from bottom to hidden.
 	updated, _ = m.Update(msg)
 	m = updated.(Model)
 
-	require.Equal(t, "right", m.positionOverride,
-		"positionOverride should be right after toggling back")
-	require.Equal(t, "right", m.ctx.PreviewPosition,
-		"PreviewPosition should be right after second toggle")
-	require.Greater(t, m.ctx.DynamicPreviewWidth, 0,
-		"DynamicPreviewWidth should be set in right mode")
-	require.Less(t, m.ctx.MainContentWidth, 100,
-		"MainContentWidth should be less than screen width in right mode")
+	require.False(t, m.sidebar.IsOpen, "sidebar should be hidden after bottom")
+	require.Equal(t, "", m.positionOverride,
+		"positionOverride should reset after hiding")
+	require.Equal(t, 0, m.ctx.DynamicPreviewWidth,
+		"DynamicPreviewWidth should be zero when hidden")
+	require.Equal(t, 0, m.ctx.DynamicPreviewHeight,
+		"DynamicPreviewHeight should be zero when hidden")
+	require.Equal(t, 100, m.ctx.MainContentWidth,
+		"MainContentWidth should be full screen width when hidden")
 }
 
 func TestView_ClosingSidebarFromBottomMode_NoExtraLine(t *testing.T) {

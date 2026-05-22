@@ -98,7 +98,9 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 					case "reopen":
 						cmd = tasks.ReopenPR(m.Ctx, sid, pr)
 					case "ready":
-						cmd = tasks.PRReady(m.Ctx, sid, pr)
+						if draftablePr, ok := pr.(tasks.DraftablePRData); ok {
+							cmd = tasks.TogglePRDraft(m.Ctx, sid, draftablePr)
+						}
 					case "merge":
 						cmd = tasks.MergePR(m.Ctx, sid, pr)
 					case "update":
@@ -185,6 +187,9 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 			}
 			if msg.ReadyForReview != nil && *msg.ReadyForReview {
 				currPr.Primary.IsDraft = false
+			}
+			if msg.IsDraft != nil {
+				currPr.Primary.IsDraft = *msg.IsDraft
 			}
 			if msg.IsMerged != nil && *msg.IsMerged {
 				currPr.Primary.State = "MERGED"

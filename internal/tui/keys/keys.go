@@ -28,26 +28,25 @@ func SetNotificationSubject(subjectType NotificationSubjectType) {
 }
 
 type KeyMap struct {
-	viewType              config.ViewType
-	Up                    key.Binding
-	Down                  key.Binding
-	FirstLine             key.Binding
-	LastLine              key.Binding
-	TogglePreview         key.Binding
-	TogglePreviewPosition key.Binding
-	OpenGithub            key.Binding
-	Refresh               key.Binding
-	RefreshAll            key.Binding
-	Redraw                key.Binding
-	PageDown              key.Binding
-	PageUp                key.Binding
-	NextSection           key.Binding
-	PrevSection           key.Binding
-	Search                key.Binding
-	CopyUrl               key.Binding
-	CopyNumber            key.Binding
-	Help                  key.Binding
-	Quit                  key.Binding
+	viewType     config.ViewType
+	Up           key.Binding
+	Down         key.Binding
+	FirstLine    key.Binding
+	LastLine     key.Binding
+	CyclePreview key.Binding
+	OpenGithub   key.Binding
+	Refresh      key.Binding
+	RefreshAll   key.Binding
+	Redraw       key.Binding
+	PageDown     key.Binding
+	PageUp       key.Binding
+	NextSection  key.Binding
+	PrevSection  key.Binding
+	Search       key.Binding
+	CopyUrl      key.Binding
+	CopyNumber   key.Binding
+	Help         key.Binding
+	Quit         key.Binding
 }
 
 func CreateKeyMapForView(viewType config.ViewType) help.KeyMap {
@@ -150,8 +149,7 @@ func (k KeyMap) AppKeys() []key.Binding {
 	return []key.Binding{
 		k.Refresh,
 		k.RefreshAll,
-		k.TogglePreview,
-		k.TogglePreviewPosition,
+		k.CyclePreview,
 		k.OpenGithub,
 		k.CopyNumber,
 		k.CopyUrl,
@@ -165,12 +163,12 @@ func (k KeyMap) QuitAndHelpKeys() []key.Binding {
 
 var Keys = &KeyMap{
 	Up: key.NewBinding(
-		key.WithKeys("ctrl+up", "k"),
-		key.WithHelp("Ctrl+↑/k", "move up"),
+		key.WithKeys("up", "k"),
+		key.WithHelp("↑/k", "move up"),
 	),
 	Down: key.NewBinding(
-		key.WithKeys("ctrl+down", "j"),
-		key.WithHelp("Ctrl+↓/j", "move down"),
+		key.WithKeys("down", "j"),
+		key.WithHelp("↓/j", "move down"),
 	),
 	FirstLine: key.NewBinding(
 		key.WithKeys("g", "home"),
@@ -180,13 +178,9 @@ var Keys = &KeyMap{
 		key.WithKeys("G", "end"),
 		key.WithHelp("G/end", "last item"),
 	),
-	TogglePreview: key.NewBinding(
+	CyclePreview: key.NewBinding(
 		key.WithKeys("p"),
-		key.WithHelp("p", "toggle preview"),
-	),
-	TogglePreviewPosition: key.NewBinding(
-		key.WithKeys("P"),
-		key.WithHelp("P", "toggle preview position"),
+		key.WithHelp("p", "cycle preview"),
 	),
 	OpenGithub: key.NewBinding(
 		key.WithKeys("o"),
@@ -201,20 +195,20 @@ var Keys = &KeyMap{
 		key.WithHelp("R", "refresh all"),
 	),
 	PageDown: key.NewBinding(
-		key.WithKeys("down"),
-		key.WithHelp("↓", "preview page down"),
+		key.WithKeys("ctrl+down"),
+		key.WithHelp("Ctrl+↓", "preview page down"),
 	),
 	PageUp: key.NewBinding(
-		key.WithKeys("up"),
-		key.WithHelp("↑", "preview page up"),
+		key.WithKeys("ctrl+up"),
+		key.WithHelp("Ctrl+↑", "preview page up"),
 	),
 	NextSection: key.NewBinding(
-		key.WithKeys("ctrl+right"),
-		key.WithHelp("Ctrl+→", "next section"),
+		key.WithKeys("right"),
+		key.WithHelp("→", "next section"),
 	),
 	PrevSection: key.NewBinding(
-		key.WithKeys("ctrl+left"),
-		key.WithHelp("Ctrl+←", "previous section"),
+		key.WithKeys("left"),
+		key.WithHelp("←", "previous section"),
 	),
 	Search: key.NewBinding(
 		key.WithKeys("/"),
@@ -309,10 +303,8 @@ func rebindUniversal(universal []config.Keybinding) error {
 			key = &Keys.FirstLine
 		case "lastLine":
 			key = &Keys.LastLine
-		case "togglePreview":
-			key = &Keys.TogglePreview
-		case "togglePreviewPosition":
-			key = &Keys.TogglePreviewPosition
+		case "cyclePreview":
+			key = &Keys.CyclePreview
 		case "openGithub":
 			key = &Keys.OpenGithub
 		case "refresh":

@@ -414,6 +414,10 @@ func (data PullRequestData) GetNumber() int {
 	return data.Number
 }
 
+func (data PullRequestData) GetIsDraft() bool {
+	return data.IsDraft
+}
+
 func (data PullRequestData) GetUrl() string {
 	return data.Url
 }

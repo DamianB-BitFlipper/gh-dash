@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"fmt"
+	"os/exec"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -32,6 +33,50 @@ func TestApproveWorkflows_TaskConfiguration(t *testing.T) {
 	require.Equal(t, "Workflows for PR #42 have been approved", capturedTask.FinishedText)
 	require.Equal(t, context.TaskStart, capturedTask.State)
 	require.Nil(t, capturedTask.Error)
+}
+
+func TestTogglePRDraft_TaskConfiguration(t *testing.T) {
+	tests := []struct {
+		name         string
+		isDraft      bool
+		expectedArgs []string
+		startText    string
+		finishedText string
+		isDraftMsg   bool
+	}{
+		{
+			name:         "draft PR is marked ready",
+			isDraft:      true,
+			expectedArgs: []string{"pr", "ready", "42", "-R", "owner/repo"},
+			startText:    "Marking PR #42 as ready for review",
+			finishedText: "PR #42 has been marked as ready for review",
+			isDraftMsg:   false,
+		},
+		{
+			name:         "ready PR is converted to draft",
+			isDraft:      false,
+			expectedArgs: []string{"pr", "ready", "--undo", "42", "-R", "owner/repo"},
+			startText:    "Converting PR #42 to draft",
+			finishedText: "PR #42 has been converted to draft",
+			isDraftMsg:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pr := mockIssue{number: 42, repoName: "owner/repo", isDraft: tt.isDraft}
+
+			task := buildTogglePRDraftTask(SectionIdentifier{Id: 2, Type: "pr"}, pr)
+			msg := task.Msg(&exec.Cmd{}, nil).(UpdatePRMsg)
+
+			require.Equal(t, "pr_toggle_draft_42", task.Id)
+			require.Equal(t, tt.expectedArgs, task.Args)
+			require.Equal(t, tt.startText, task.StartText)
+			require.Equal(t, tt.finishedText, task.FinishedText)
+			require.NotNil(t, msg.IsDraft)
+			require.Equal(t, tt.isDraftMsg, *msg.IsDraft)
+		})
+	}
 }
 
 func TestApproveWorkflows_ReturnsNonNilCommand(t *testing.T) {

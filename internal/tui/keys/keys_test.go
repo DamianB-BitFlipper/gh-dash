@@ -168,14 +168,14 @@ func TestFullHelpForPRViewDoesNotIncludeNotificationKeys(t *testing.T) {
 }
 
 func TestDefaultArrowKeybindings(t *testing.T) {
-	requireKeys(t, Keys.Up, "ctrl+up", "k")
-	requireKeys(t, Keys.Down, "ctrl+down", "j")
-	requireKeys(t, Keys.PrevSection, "ctrl+left")
-	requireKeys(t, Keys.NextSection, "ctrl+right")
-	requireKeys(t, Keys.PageUp, "up")
-	requireKeys(t, Keys.PageDown, "down")
-	requireKeys(t, PRKeys.PrevSidebarTab, "left")
-	requireKeys(t, PRKeys.NextSidebarTab, "right")
+	requireKeys(t, Keys.Up, "up", "k")
+	requireKeys(t, Keys.Down, "down", "j")
+	requireKeys(t, Keys.PrevSection, "left")
+	requireKeys(t, Keys.NextSection, "right")
+	requireKeys(t, Keys.PageUp, "ctrl+up")
+	requireKeys(t, Keys.PageDown, "ctrl+down")
+	requireKeys(t, PRKeys.PrevSidebarTab, "ctrl+left")
+	requireKeys(t, PRKeys.NextSidebarTab, "ctrl+right")
 }
 
 func TestFullHelpColumnsAreBalanced(t *testing.T) {

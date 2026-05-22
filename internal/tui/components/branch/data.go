@@ -30,6 +30,10 @@ func (b BranchData) GetNumber() int {
 	return b.PR.Number
 }
 
+func (b BranchData) GetIsDraft() bool {
+	return b.PR != nil && b.PR.IsDraft
+}
+
 func (b BranchData) GetUrl() string {
 	if b.PR == nil {
 		return ""

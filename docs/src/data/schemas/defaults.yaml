@@ -117,7 +117,7 @@ properties:
 
             By default, the dashboard displays the preview pane.
 
-            [toggle preview pane]: /getting-started/keybindings/preview/#toggle-preview-pane
+            [toggle preview pane]: /getting-started/keybindings/preview/#p---cycle-preview-pane
         type: boolean
         default: true
       width:
