@@ -178,6 +178,26 @@ func TestDefaultArrowKeybindings(t *testing.T) {
 	requireKeys(t, PRKeys.NextSidebarTab, "right")
 }
 
+func TestFullHelpColumnsAreBalanced(t *testing.T) {
+	keymap := CreateKeyMapForView(config.PRsView)
+	help := keymap.FullHelp()
+
+	minLen := len(help[0])
+	maxLen := len(help[0])
+	for _, section := range help {
+		if len(section) < minLen {
+			minLen = len(section)
+		}
+		if len(section) > maxLen {
+			maxLen = len(section)
+		}
+	}
+
+	if maxLen-minLen > 1 {
+		t.Fatalf("expected balanced help columns, got lengths min=%d max=%d", minLen, maxLen)
+	}
+}
+
 func requireKeys(t *testing.T, binding key.Binding, want ...string) {
 	t.Helper()
 	got := binding.Keys()

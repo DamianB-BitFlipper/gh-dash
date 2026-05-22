@@ -91,19 +91,46 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 		customKeys = append(customKeys, CustomIssueBindings...)
 	}
 
-	sections := [][]key.Binding{
+	keyGroups := [][]key.Binding{
 		k.NavigationKeys(),
 		k.AppKeys(),
 		additionalKeys,
 	}
 
 	if len(customKeys) > 0 {
-		sections = append(sections, customKeys)
+		keyGroups = append(keyGroups, customKeys)
 	}
 
-	sections = append(sections, k.QuitAndHelpKeys())
+	keyGroups = append(keyGroups, k.QuitAndHelpKeys())
 
-	return sections
+	return buildBalancedHelpColumns(keyGroups...)
+}
+
+func buildBalancedHelpColumns(keyGroups ...[]key.Binding) [][]key.Binding {
+	var bindings []key.Binding
+	for _, group := range keyGroups {
+		bindings = append(bindings, group...)
+	}
+	if len(keyGroups) == 0 || len(bindings) == 0 {
+		return keyGroups
+	}
+
+	baseColumnSize := len(bindings) / len(keyGroups)
+	extraBindings := len(bindings) % len(keyGroups)
+	columns := make([][]key.Binding, 0, len(keyGroups))
+	for i := range keyGroups {
+		count := baseColumnSize
+		if i < extraBindings {
+			count++
+		}
+		if count == 0 {
+			continue
+		}
+		columns = append(columns, bindings[:count])
+		bindings = bindings[count:]
+	}
+
+	return columns
 }
 
 func (k KeyMap) NavigationKeys() []key.Binding {

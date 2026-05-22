@@ -349,7 +349,7 @@ func (parser ConfigParser) getDefaultConfig() Config {
 		Defaults: Defaults{
 			Preview: PreviewConfig{
 				Open:     true,
-				Width:    0.45,
+				Width:    0.5,
 				Height:   0.60,
 				Position: "auto",
 			},
