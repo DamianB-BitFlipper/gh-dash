@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
-	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -282,19 +280,13 @@ func CheckoutPR(ctx *context.ProgramContext, prNumber int, repoName string) (tea
 	}
 	startCmd := ctx.StartTask(task)
 	return tea.Batch(startCmd, func() tea.Msg {
-		c := exec.Command(
+		err := common.RunRepoCommand(
+			repoPath,
 			"gh",
 			"pr",
 			"checkout",
 			fmt.Sprint(prNumber),
 		)
-		userHomeDir, _ := os.UserHomeDir()
-		if strings.HasPrefix(repoPath, "~") {
-			repoPath = strings.Replace(repoPath, "~", userHomeDir, 1)
-		}
-
-		c.Dir = repoPath
-		err := c.Run()
 		return constants.TaskFinishedMsg{TaskId: taskId, Err: err}
 	}), nil
 }

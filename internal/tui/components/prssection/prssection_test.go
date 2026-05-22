@@ -6,6 +6,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/stretchr/testify/require"
 
+	"github.com/dlvhdr/gh-dash/v4/internal/config"
 	"github.com/dlvhdr/gh-dash/v4/internal/data"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prompt"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prrow"
@@ -34,6 +35,67 @@ func newTestModel(action string) Model {
 	}
 	m.PromptConfirmationBox.Focus()
 	return m
+}
+
+func TestRepoFromFilters(t *testing.T) {
+	tests := []struct {
+		name    string
+		filters string
+		want    string
+		ok      bool
+	}{
+		{name: "single repo", filters: "is:open repo:owner/name author:@me", want: "owner/name", ok: true},
+		{name: "no repo", filters: "is:open author:@me", ok: false},
+		{name: "empty repo", filters: "repo: is:open", ok: false},
+		{name: "multiple repos", filters: "repo:owner/one repo:owner/two", ok: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := repoFromFilters(tt.filters)
+			require.Equal(t, tt.ok, ok)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestCreatePRRequiresSingleRepoFilter(t *testing.T) {
+	m := newTestModel("")
+	m.SearchValue = "is:open"
+
+	cmd, err := m.createPR()
+
+	require.Nil(t, cmd)
+	require.EqualError(t, err, "current PR section must have exactly one repo:owner/name filter to create a PR")
+}
+
+func TestCreatePRRequiresConfiguredRepoPath(t *testing.T) {
+	m := newTestModel("")
+	m.SearchValue = "repo:owner/name is:open"
+	m.Ctx.Config = &config.Config{RepoPaths: map[string]string{}}
+
+	cmd, err := m.createPR()
+
+	require.Nil(t, cmd)
+	require.EqualError(t, err, "local path to repo not specified, set one in your config.yml under repoPaths")
+}
+
+func TestCreatePRStartsTaskWhenRepoScoped(t *testing.T) {
+	var started context.Task
+	m := newTestModel("")
+	m.SearchValue = "repo:owner/name is:open"
+	m.Ctx.Config = &config.Config{RepoPaths: map[string]string{"owner/name": "/tmp/name"}}
+	m.Ctx.StartTask = func(task context.Task) tea.Cmd {
+		started = task
+		return func() tea.Msg { return nil }
+	}
+
+	cmd, err := m.createPR()
+
+	require.NoError(t, err)
+	require.NotNil(t, cmd)
+	require.Contains(t, started.Id, "create_pr_owner_name")
+	require.Equal(t, "Creating PR in owner/name", started.StartText)
 }
 
 func TestConfirmation_AcceptWithEmptyInput(t *testing.T) {

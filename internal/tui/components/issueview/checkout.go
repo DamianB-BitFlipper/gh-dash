@@ -3,9 +3,6 @@ package issueview
 import (
 	"errors"
 	"fmt"
-	"os"
-	"os/exec"
-	"strings"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -43,7 +40,8 @@ func (m *Model) Checkout() (tea.Cmd, error) {
 	}
 	startCmd := m.ctx.StartTask(task)
 	return tea.Batch(startCmd, func() tea.Msg {
-		c := exec.Command(
+		err := common.RunRepoCommand(
+			repoPath,
 			"gh",
 			"issue",
 			"develop",
@@ -52,13 +50,6 @@ func (m *Model) Checkout() (tea.Cmd, error) {
 			repoName,
 			"--checkout",
 		)
-		userHomeDir, _ := os.UserHomeDir()
-		if strings.HasPrefix(repoPath, "~") {
-			repoPath = strings.Replace(repoPath, "~", userHomeDir, 1)
-		}
-
-		c.Dir = repoPath
-		err := c.Run()
 		return constants.TaskFinishedMsg{TaskId: taskId, Err: err}
 	}), nil
 }

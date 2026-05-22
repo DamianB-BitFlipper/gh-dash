@@ -123,6 +123,12 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 		case key.Matches(msg, keys.PRKeys.Diff):
 			cmd = m.diff()
 
+		case key.Matches(msg, keys.PRKeys.Create):
+			cmd, err = m.createPR()
+			if err != nil {
+				m.Ctx.Error = err
+			}
+
 		case key.Matches(msg, keys.PRKeys.ToggleSmartFiltering):
 			before := m.IsFilteredByCurrentRemote
 

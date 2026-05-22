@@ -64,6 +64,7 @@ type Model struct {
 	tasks            map[string]context.Task
 	prPreviewStates  map[string]prPreviewState
 	copySelection    copySelectionModel
+	messagePopup     *messagePopup
 	positionOverride string // "" means no override, "right" or "bottom"
 }
 
@@ -188,6 +189,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		log.Info("Key pressed", "key", msg.String())
 		m.ctx.Error = nil
+		if m.messagePopup != nil {
+			if msg.String() == "esc" || msg.String() == "enter" {
+				m.messagePopup = nil
+			}
+			return m, nil
+		}
 
 		if currSection != nil && (currSection.IsSearchFocused() ||
 			currSection.IsPromptConfirmationFocused()) {
@@ -710,6 +717,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				log.Error("Task finished with error", "id", task.Id, "err", msg.Err)
 				task.State = context.TaskError
 				task.Error = msg.Err
+				m.messagePopup = newErrorMessagePopup(msg.Err)
 			} else {
 				task.State = context.TaskFinished
 			}
@@ -904,7 +912,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd, m.doUpdateFooterAtInterval())
 
 	case constants.ErrMsg:
-		m.ctx.Error = msg.Err
+		m.messagePopup = newErrorMessagePopup(msg.Err)
 	}
 
 	m.syncProgramContext()
@@ -996,20 +1004,7 @@ func (m Model) View() tea.View {
 	}
 	s.WriteString(content)
 	s.WriteString("\n")
-	if m.ctx.Error != nil {
-		s.WriteString(
-			m.ctx.Styles.Common.ErrorStyle.
-				Width(m.ctx.ScreenWidth).
-				Render(fmt.Sprintf("%s %s",
-					m.ctx.Styles.Common.FailureGlyph,
-					lipgloss.NewStyle().
-						Foreground(m.ctx.Theme.ErrorText).
-						Render(m.ctx.Error.Error()),
-				)),
-		)
-	} else {
-		s.WriteString(m.footer.View())
-	}
+	s.WriteString(m.footer.View())
 
 	layers := []*lipgloss.Layer{
 		lipgloss.NewLayer(zone.Scan(s.String())),
@@ -1034,6 +1029,12 @@ func (m Model) View() tea.View {
 	if issueCmp != "" {
 		y := m.ctx.ScreenHeight - common.FooterHeight - m.issueSidebar.InputBoxLineFromButton() - common.InputBoxHeight - 6
 		layers = append(layers, lipgloss.NewLayer(issueCmp).X(previewPos.X+3).Y(y))
+	}
+	if m.messagePopup != nil {
+		popup := m.renderMessagePopup()
+		layers = append(layers, lipgloss.NewLayer(popup).
+			X(max(0, (m.ctx.ScreenWidth-lipgloss.Width(popup))/2)).
+			Y(max(0, (m.ctx.ScreenHeight-lipgloss.Height(popup))/2)))
 	}
 	comp := lipgloss.NewCompositor(layers...)
 	v.SetContent(comp.Render())

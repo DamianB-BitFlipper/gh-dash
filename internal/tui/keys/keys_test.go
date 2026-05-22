@@ -159,6 +159,10 @@ func TestFullHelpForPRViewDoesNotIncludeNotificationKeys(t *testing.T) {
 	if !found {
 		t.Error("expected PR key 'diff' to be present in PR view")
 	}
+	found = findKeyByHelp(allKeys, "create PR")
+	if !found {
+		t.Error("expected PR key 'create PR' to be present in PR view")
+	}
 
 	// Check that notification-specific keys are NOT present
 	found = findKeyByHelp(allKeys, "toggle bookmark")
@@ -242,6 +246,30 @@ func TestRebindPRKeys_CopyBranchBuiltin(t *testing.T) {
 	}
 	if PRKeys.CopyBranch.Help().Desc != "copy head branch" {
 		t.Errorf("expected help to be updated, got %q", PRKeys.CopyBranch.Help().Desc)
+	}
+}
+
+func TestRebindPRKeys_CreatePrBuiltin(t *testing.T) {
+	origKeys := PRKeys.Create.Keys()
+	origHelp := PRKeys.Create.Help().Desc
+	defer func() {
+		PRKeys.Create.SetKeys(origKeys...)
+		PRKeys.Create.SetHelp(origKeys[0], origHelp)
+	}()
+
+	err := rebindPRKeys([]config.Keybinding{
+		{Builtin: "createPr", Key: "O", Name: "open create PR"},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	keys := PRKeys.Create.Keys()
+	if len(keys) != 1 || keys[0] != "O" {
+		t.Errorf("expected key to be rebound to O, got %v", keys)
+	}
+	if PRKeys.Create.Help().Desc != "open create PR" {
+		t.Errorf("expected help to be updated, got %q", PRKeys.Create.Help().Desc)
 	}
 }
 

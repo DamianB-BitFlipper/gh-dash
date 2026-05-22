@@ -2,6 +2,8 @@ package common
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -56,4 +58,28 @@ func GetRepoLocalPath(repoName string, cfgPaths map[string]string) (string, bool
 	}
 
 	return "", false
+}
+
+func RunRepoCommand(repoPath string, args ...string) error {
+	if len(args) == 0 {
+		return nil
+	}
+	if strings.HasPrefix(repoPath, "~") {
+		if home, err := os.UserHomeDir(); err == nil {
+			repoPath = strings.Replace(repoPath, "~", home, 1)
+		}
+	}
+
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Dir = repoPath
+	output, err := cmd.CombinedOutput()
+	if err == nil {
+		return nil
+	}
+
+	message := strings.TrimSpace(string(output))
+	if message == "" {
+		message = err.Error()
+	}
+	return fmt.Errorf("%s failed in %s: %s", strings.Join(args, " "), repoPath, message)
 }

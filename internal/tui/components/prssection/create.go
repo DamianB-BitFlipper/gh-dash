@@ -3,6 +3,8 @@ package prssection
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -11,39 +13,30 @@ import (
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
 )
 
-func (m *Model) checkout() (tea.Cmd, error) {
-	pr := m.GetCurrRow()
-	if pr == nil {
-		return nil, errors.New("no pr selected")
+func (m *Model) createPR() (tea.Cmd, error) {
+	repoName, ok := m.repoFromFilters()
+	if !ok {
+		return nil, errors.New("current PR section must have exactly one repo:owner/name filter to create a PR")
 	}
 
-	repoName := pr.GetRepoNameWithOwner()
 	repoPath, ok := common.GetRepoLocalPath(repoName, m.Ctx.Config.RepoPaths)
-
 	if !ok {
 		return nil, errors.New(
 			"local path to repo not specified, set one in your config.yml under repoPaths",
 		)
 	}
 
-	prNumber := pr.GetNumber()
-	taskId := fmt.Sprintf("checkout_%d", prNumber)
+	taskId := fmt.Sprintf("create_pr_%s_%d", strings.ReplaceAll(repoName, "/", "_"), time.Now().Unix())
 	task := context.Task{
 		Id:           taskId,
-		StartText:    fmt.Sprintf("Checking out PR #%d", prNumber),
-		FinishedText: fmt.Sprintf("PR #%d has been checked out at %s", prNumber, repoPath),
+		StartText:    fmt.Sprintf("Creating PR in %s", repoName),
+		FinishedText: fmt.Sprintf("PR create opened for %s", repoName),
 		State:        context.TaskStart,
 		Error:        nil,
 	}
 	startCmd := m.Ctx.StartTask(task)
 	return tea.Batch(startCmd, func() tea.Msg {
-		err := common.RunRepoCommand(
-			repoPath,
-			"gh",
-			"pr",
-			"checkout",
-			fmt.Sprint(m.GetCurrRow().GetNumber()),
-		)
+		err := common.RunRepoCommand(repoPath, "gh", "pr", "create", "--web")
 		return constants.TaskFinishedMsg{TaskId: taskId, Err: err}
 	}), nil
 }
