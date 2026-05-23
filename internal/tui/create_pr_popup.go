@@ -26,7 +26,7 @@ func (m *Model) renderCreatePRPopup() string {
 		return ""
 	}
 
-	width := min(max(50, m.ctx.ScreenWidth-10), 100)
+	width := min(max(50, m.ctx.ScreenWidth-10), 140)
 	contentWidth := width - 4
 	prSection.CreatePRForm.SetWidth(contentWidth)
 

@@ -198,8 +198,10 @@ func (pr *PullRequest) renderExtendedTitle(isSelected bool) string {
 		fmt.Sprintf(" #%d by %s", pr.Data.Primary.Number, author))
 	branchHidden := pr.Ctx.Config.Defaults.Layout.Prs.Base.Hidden
 	if branchHidden == nil || !*branchHidden {
-		branch := baseStyle.Render(pr.Data.Primary.HeadRefName)
-		top = lipgloss.JoinHorizontal(lipgloss.Top, top, baseStyle.Render(" · "), branch)
+		branch := strings.TrimSpace(pr.Data.Primary.HeadRefName)
+		if branch != "" {
+			top = lipgloss.JoinHorizontal(lipgloss.Top, top, baseStyle.Render(" · "), baseStyle.Render(branch))
+		}
 	}
 	title := pr.Data.Primary.Title
 	var titleColumn table.Column
@@ -208,19 +210,24 @@ func (pr *PullRequest) renderExtendedTitle(isSelected bool) string {
 			titleColumn = column
 		}
 	}
-	width := titleColumn.ComputedWidth - 2
+	width := max(1, titleColumn.ComputedWidth-2)
 	top = baseStyle.Foreground(pr.Ctx.Theme.SecondaryText).
 		Width(width).
 		MaxWidth(width).
 		Height(1).
 		MaxHeight(1).
 		Render(top)
+	branches := baseStyle.Foreground(pr.Ctx.Theme.FaintText).
+		Width(width).
+		MaxWidth(width).
+		Height(1).
+		MaxHeight(1).
+		Render(fmt.Sprintf("%s <- %s", pr.Data.Primary.BaseRefName, pr.Data.Primary.HeadRefName))
 	title = baseStyle.Foreground(pr.Ctx.Theme.PrimaryText).Bold(true).Width(width).MaxWidth(
 		width).Height(1).MaxHeight(1).Render(title)
 
-	return baseStyle.Render(lipgloss.JoinVertical(lipgloss.Left, top, title))
+	return baseStyle.Render(lipgloss.JoinVertical(lipgloss.Left, top, branches, title))
 }
-
 func (pr *PullRequest) renderAuthor() string {
 	return pr.getTextStyle().Render(pr.Data.Primary.GetAuthor(pr.Ctx.Theme, pr.ShowAuthorIcon))
 }

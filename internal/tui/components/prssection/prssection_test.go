@@ -1,10 +1,13 @@
 package prssection
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/stretchr/testify/require"
 
 	"github.com/dlvhdr/gh-dash/v4/internal/config"
@@ -15,12 +18,14 @@ import (
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/section"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dash/v4/internal/tui/theme"
 )
 
 // newTestModel creates a minimal Model with the prompt confirmation box
 // focused and a single PR row so that GetCurrRow returns non-nil.
 func newTestModel(action string) Model {
 	ctx := &context.ProgramContext{
+		Theme: *theme.DefaultTheme,
 		StartTask: func(task context.Task) tea.Cmd {
 			return func() tea.Msg { return nil }
 		},
@@ -58,6 +63,61 @@ func TestCreatePRBranchesFetchedIgnoresStaleResult(t *testing.T) {
 	require.True(t, m.CreatePRForm.BranchesLoading())
 	require.Empty(t, m.CreatePRForm.Head())
 	require.Empty(t, m.CreatePRForm.Base())
+}
+
+func TestCreatePRFormShowsHeadBeforeBase(t *testing.T) {
+	f := newTestModel("create_pr").CreatePRForm
+	f.SetWidth(80)
+	f.SetBranches([]fuzzyselect.Suggestion{{Value: "feature"}, {Value: "main"}}, "feature", "main")
+
+	view := ansi.Strip(f.View())
+	headIdx := strings.Index(view, "Head branch")
+	baseIdx := strings.Index(view, "Base branch")
+
+	require.NotEqual(t, -1, headIdx)
+	require.NotEqual(t, -1, baseIdx)
+	require.Less(t, headIdx, baseIdx)
+	require.NotContains(t, view, "←")
+}
+
+func TestCreatePRFormTabsThroughFieldsInVisualOrder(t *testing.T) {
+	f := newTestModel("create_pr").CreatePRForm
+
+	f, _ = f.Update(tea.KeyPressMsg{Text: "tab"})
+	require.Equal(t, 1, f.active)
+
+	f, _ = f.Update(tea.KeyPressMsg{Text: "tab"})
+	require.Equal(t, 2, f.active)
+
+	f, _ = f.Update(tea.KeyPressMsg{Text: "tab"})
+	require.Equal(t, 3, f.active)
+
+	f, _ = f.Update(tea.KeyPressMsg{Text: "shift+tab"})
+	require.Equal(t, 2, f.active)
+}
+
+func TestCreatePRFormLongBranchesDoNotOverflowNarrowWidth(t *testing.T) {
+	f := newTestModel("create_pr").CreatePRForm
+	f.SetWidth(80)
+	f.active = 1
+	f.SetBranches([]fuzzyselect.Suggestion{{Value: strings.Repeat("microservice/", 12)}}, strings.Repeat("microservice/", 12), "main")
+
+	view := ansi.Strip(f.View())
+	for _, line := range strings.Split(view, "\n") {
+		require.LessOrEqual(t, lipgloss.Width(line), 80, "line overflows form width: %q", line)
+	}
+}
+
+func TestResetRowsClearsLastFetchTaskID(t *testing.T) {
+	m := Model{
+		BaseModel: section.BaseModel{LastFetchTaskId: "fetching_prs_1_previous"},
+		Prs:       []prrow.Data{{Primary: &data.PullRequestData{Number: 42}}},
+	}
+
+	m.ResetRows()
+
+	require.Empty(t, m.LastFetchTaskId)
+	require.Nil(t, m.Prs)
 }
 
 func TestSortPRsUsesLoadedRows(t *testing.T) {

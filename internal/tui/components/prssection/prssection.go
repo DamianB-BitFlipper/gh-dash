@@ -51,6 +51,9 @@ func NewModel(
 			CreatedAt:   createdAt,
 		},
 	)
+	if !ctx.Config.Theme.Ui.Table.Compact {
+		m.Table.SetContentHeight(3)
+	}
 	m.Prs = []prrow.Data{}
 	m.CreatePRForm = newCreatePRForm(ctx)
 	m.updateSortHeader()
@@ -620,6 +623,7 @@ func (m *Model) FetchNextPageSectionRows() []tea.Cmd {
 
 func (m *Model) ResetRows() {
 	m.Prs = nil
+	m.LastFetchTaskId = ""
 	m.BaseModel.ResetRows()
 }
 

@@ -112,34 +112,34 @@ func (f createPRForm) Update(msg tea.Msg) (createPRForm, tea.Cmd) {
 			return f, f.focusActive()
 		case "down", "ctrl+n":
 			if f.active == 1 {
-				f.baseIdx = nextBranchIndex(f.baseIdx, len(f.baseList))
+				f.headIdx = nextBranchIndex(f.headIdx, len(f.headList))
 				return f, nil
 			}
 			if f.active == 2 {
-				f.headIdx = nextBranchIndex(f.headIdx, len(f.headList))
+				f.baseIdx = nextBranchIndex(f.baseIdx, len(f.baseList))
 				return f, nil
 			}
 		case "up", "ctrl+p":
 			if f.active == 1 {
-				f.baseIdx = prevBranchIndex(f.baseIdx, len(f.baseList))
+				f.headIdx = prevBranchIndex(f.headIdx, len(f.headList))
 				return f, nil
 			}
 			if f.active == 2 {
-				f.headIdx = prevBranchIndex(f.headIdx, len(f.headList))
+				f.baseIdx = prevBranchIndex(f.baseIdx, len(f.baseList))
 				return f, nil
 			}
 		case "enter", "ctrl+y":
 			if f.active == 1 {
-				if selected := selectedBranch(f.baseList, f.baseIdx); selected != "" {
-					f.base.SetValue(selected)
-					f.base.CursorEnd()
+				if selected := selectedBranch(f.headList, f.headIdx); selected != "" {
+					f.head.SetValue(selected)
+					f.head.CursorEnd()
 					return f, nil
 				}
 			}
 			if f.active == 2 {
-				if selected := selectedBranch(f.headList, f.headIdx); selected != "" {
-					f.head.SetValue(selected)
-					f.head.CursorEnd()
+				if selected := selectedBranch(f.baseList, f.baseIdx); selected != "" {
+					f.base.SetValue(selected)
+					f.base.CursorEnd()
 					return f, nil
 				}
 			}
@@ -151,13 +151,13 @@ func (f createPRForm) Update(msg tea.Msg) (createPRForm, tea.Cmd) {
 	case 0:
 		f.title, cmd = f.title.Update(msg)
 	case 1:
-		f.base, cmd = f.base.Update(msg)
-		f.baseList = filterBranches(f.branches, f.base.Value())
-		f.baseIdx = clampBranchIndex(f.baseIdx, len(f.baseList))
-	case 2:
 		f.head, cmd = f.head.Update(msg)
 		f.headList = filterBranches(f.branches, f.head.Value())
 		f.headIdx = clampBranchIndex(f.headIdx, len(f.headList))
+	case 2:
+		f.base, cmd = f.base.Update(msg)
+		f.baseList = filterBranches(f.branches, f.base.Value())
+		f.baseIdx = clampBranchIndex(f.baseIdx, len(f.baseList))
 	default:
 		f.body, cmd = f.body.Update(msg)
 	}
@@ -173,14 +173,14 @@ func (f *createPRForm) focusActive() tea.Cmd {
 	case 0:
 		return f.title.Focus()
 	case 1:
-		cmd := f.base.Focus()
-		f.baseList = filterBranches(f.branches, f.base.Value())
-		f.baseIdx = clampBranchIndex(f.baseIdx, len(f.baseList))
-		return cmd
-	case 2:
 		cmd := f.head.Focus()
 		f.headList = filterBranches(f.branches, f.head.Value())
 		f.headIdx = clampBranchIndex(f.headIdx, len(f.headList))
+		return cmd
+	case 2:
+		cmd := f.base.Focus()
+		f.baseList = filterBranches(f.branches, f.base.Value())
+		f.baseIdx = clampBranchIndex(f.baseIdx, len(f.baseList))
 		return cmd
 	default:
 		return f.body.Focus()
@@ -198,18 +198,17 @@ func (f createPRForm) View() string {
 		return style.Render(text)
 	}
 
-	branchLabels := f.branchRelationLabels(label)
-	branchInputs := f.branchRelationInputs()
-	branchList := ""
-	if f.active == 1 {
-		branchList = f.branchListView(f.baseList, f.baseIdx, 0)
-	} else if f.active == 2 {
-		branchList = f.branchListView(f.headList, f.headIdx, f.branchFieldWidth()+3)
-	}
-
 	width := f.width
 	if width <= 0 {
 		width = 30
+	}
+
+	headBranchList := ""
+	baseBranchList := ""
+	if f.active == 1 {
+		headBranchList = f.branchListView(f.headList, f.headIdx, width)
+	} else if f.active == 2 {
+		baseBranchList = f.branchListView(f.baseList, f.baseIdx, width)
 	}
 
 	helpStyle := f.popupBgStyle()
@@ -222,9 +221,13 @@ func (f createPRForm) View() string {
 		f.renderField(width, label(f.active == 0, "Title")),
 		f.renderField(width, f.title.View()),
 		f.renderField(width, ""),
-		f.renderField(width, branchLabels),
-		f.renderField(width, branchInputs),
-		f.renderField(width, branchList),
+		f.renderField(width, label(f.active == 1, "Head branch")),
+		f.renderField(width, f.head.View()),
+		f.renderField(width, headBranchList),
+		f.renderField(width, ""),
+		f.renderField(width, label(f.active == 2, "Base branch")),
+		f.renderField(width, f.base.View()),
+		f.renderField(width, baseBranchList),
 		f.renderField(width, ""),
 		f.renderField(width, label(f.active == 3, "Body")),
 		f.renderField(width, f.body.View()),
@@ -233,58 +236,24 @@ func (f createPRForm) View() string {
 	)
 }
 
-func (f createPRForm) branchRelationLabels(label func(bool, string) string) string {
-	fieldWidth := f.branchFieldWidth()
-	arrow := f.popupBgStyle().Width(3).Align(lipgloss.Center).Render(" ")
-	return lipgloss.JoinHorizontal(
-		lipgloss.Left,
-		f.popupBgStyle().Width(fieldWidth).Render(label(f.active == 1, "Base branch")),
-		arrow,
-		f.popupBgStyle().Width(fieldWidth).Render(label(f.active == 2, "Head branch")),
-	)
-}
-
-func (f createPRForm) branchRelationInputs() string {
-	fieldWidth := f.branchFieldWidth()
-	arrowStyle := f.popupBgStyle().Width(3).Align(lipgloss.Center)
-	if f.ctx != nil {
-		arrowStyle = arrowStyle.Foreground(f.ctx.Theme.FaintText)
-	}
-	arrow := arrowStyle.Render("←")
-	return lipgloss.JoinHorizontal(
-		lipgloss.Left,
-		f.renderField(fieldWidth, f.base.View()),
-		arrow,
-		f.renderField(fieldWidth, f.head.View()),
-	)
-}
-
-func (f createPRForm) branchFieldWidth() int {
-	if f.width <= 0 {
-		return 30
-	}
-	return max(20, (f.width-3)/2)
-}
-
-func (f createPRForm) branchListView(branches []fuzzyselect.Suggestion, selected int, indent int) string {
+func (f createPRForm) branchListView(branches []fuzzyselect.Suggestion, selected int, width int) string {
 	if f.ctx == nil {
 		return ""
 	}
+	width = max(1, width)
+	listStyle := f.popupBgStyle().Width(width).MaxWidth(width).MaxHeight(4)
 	if f.loading {
-		return f.popupBgStyle().
-			MarginLeft(indent).
+		return listStyle.
 			Foreground(f.ctx.Theme.FaintText).
 			Render("Loading...")
 	}
 	if f.err != nil {
-		return f.popupBgStyle().
-			MarginLeft(indent).
+		return listStyle.
 			Foreground(f.ctx.Theme.ErrorText).
 			Render("Failed loading branches")
 	}
 	if len(branches) == 0 {
-		return f.popupBgStyle().
-			MarginLeft(indent).
+		return listStyle.
 			Foreground(f.ctx.Theme.FaintText).
 			Render("No matching branches")
 	}
@@ -301,18 +270,17 @@ func (f createPRForm) branchListView(branches []fuzzyselect.Suggestion, selected
 		if branches[i].Detail != "" {
 			detail = f.popupBgStyle().Foreground(f.ctx.Theme.FaintText).Render(" " + branches[i].Detail)
 		}
-		rows = append(rows, style.Render(prefix+branches[i].Value)+detail)
+		rows = append(rows, f.popupBgStyle().Width(width).MaxWidth(width).MaxHeight(1).Render(style.Render(prefix+branches[i].Value)+detail))
 	}
-	return f.popupBgStyle().MarginLeft(indent).Render(lipgloss.JoinVertical(lipgloss.Left, rows...))
+	return listStyle.Render(lipgloss.JoinVertical(lipgloss.Left, rows...))
 }
 
 func (f *createPRForm) SetWidth(width int) {
 	width = max(20, width)
 	f.width = width
 	f.title.SetWidth(width)
-	branchWidth := f.branchFieldWidth()
-	f.head.SetWidth(branchWidth)
-	f.base.SetWidth(branchWidth)
+	f.head.SetWidth(width)
+	f.base.SetWidth(width)
 	f.body.SetWidth(width)
 }
 

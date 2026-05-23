@@ -14,6 +14,7 @@ import (
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/table"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dash/v4/internal/tui/theme"
 )
 
 func TestGetStatusChecksRollup(t *testing.T) {
@@ -347,4 +348,32 @@ func TestRenderLabels(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRenderExtendedTitleIncludesBranchDirection(t *testing.T) {
+	pr := &PullRequest{
+		Data: &Data{Primary: &data.PullRequestData{
+			Title:       "Fix sandbox webhook logic",
+			Number:      2456,
+			State:       "OPEN",
+			HeadRefName: "fix/eval-sandbox-race",
+			BaseRefName: "develop",
+			Repository:  data.Repository{NameWithOwner: "owner/repo"},
+		}},
+		Ctx: &context.ProgramContext{
+			Config: &config.Config{Theme: &config.ThemeConfig{}},
+			Theme:  *theme.DefaultTheme,
+		},
+		Columns: []table.Column{{Grow: boolPtr(true), ComputedWidth: 80}},
+	}
+
+	got := pr.renderExtendedTitle(false)
+
+	if !strings.Contains(got, "develop <- fix/eval-sandbox-race") {
+		t.Fatalf("expected branch direction in extended title, got %q", got)
+	}
+}
+
+func boolPtr(v bool) *bool {
+	return &v
 }
