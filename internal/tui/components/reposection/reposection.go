@@ -72,6 +72,9 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if handled, cmd := m.HandleLocalSearchKey(msg, m.BuildRows); handled {
+			return m, cmd
+		}
 
 		if m.IsSearchFocused() {
 			switch msg.String() {
@@ -230,8 +233,13 @@ func (m *Model) View() string {
 		view = m.Table.View()
 	}
 
+	search := m.SearchBar.View(m.Ctx)
+	if m.IsLocalSearching || m.LocalSearchValue != "" {
+		search = m.LocalSearchBar.View(m.Ctx)
+	}
+
 	return m.Ctx.Styles.Section.ContainerStyle.Render(
-		lipgloss.JoinVertical(lipgloss.Left, m.SearchBar.View(m.Ctx), view),
+		lipgloss.JoinVertical(lipgloss.Left, search, view),
 	)
 }
 
@@ -394,15 +402,11 @@ func (m Model) BuildRows() []table.Row {
 	var rows []table.Row
 	currItem := m.Table.GetCurrItem()
 
-	filtered := m.getFilteredBranches()
-
-	for i, b := range filtered {
-		if strings.Contains(b.Data.Name, m.SearchValue) {
-			rows = append(
-				rows,
-				b.ToTableRow(currItem == i),
-			)
-		}
+	for i, b := range m.getFilteredBranches() {
+		rows = append(
+			rows,
+			b.ToTableRow(currItem == i),
+		)
 	}
 
 	if rows == nil {
@@ -415,12 +419,42 @@ func (m Model) BuildRows() []table.Row {
 func (m *Model) getFilteredBranches() []branch.Branch {
 	sorted := m.Branches
 	filtered := make([]branch.Branch, 0)
+	query := strings.ToLower(strings.TrimSpace(m.SearchValue))
+	if local := m.LocalSearchQuery(); local != "" {
+		query = local
+	}
 	for _, b := range sorted {
-		if strings.Contains(b.Data.Name, m.SearchValue) {
+		if branchMatchesLocalSearch(b, query) {
 			filtered = append(filtered, b)
 		}
 	}
 	return filtered
+}
+
+func branchMatchesLocalSearch(b branch.Branch, query string) bool {
+	if query == "" {
+		return true
+	}
+	fields := []string{b.Data.Name}
+	if b.Data.LastCommitMsg != nil {
+		fields = append(fields, *b.Data.LastCommitMsg)
+	}
+	if b.PR != nil {
+		fields = append(fields,
+			b.PR.Title,
+			fmt.Sprintf("%d", b.PR.Number),
+			fmt.Sprintf("#%d", b.PR.Number),
+			b.PR.HeadRefName,
+			b.PR.BaseRefName,
+			b.PR.State,
+		)
+	}
+	for _, field := range fields {
+		if strings.Contains(strings.ToLower(field), query) {
+			return true
+		}
+	}
+	return false
 }
 
 func findPRForRef(prs []data.PullRequestData, branch string) *data.PullRequestData {
@@ -433,7 +467,7 @@ func findPRForRef(prs []data.PullRequestData, branch string) *data.PullRequestDa
 }
 
 func (m *Model) NumRows() int {
-	return len(m.repo.Branches)
+	return len(m.getFilteredBranches())
 }
 
 type SectionPullRequestsFetchedMsg struct {
@@ -445,18 +479,20 @@ type SectionPullRequestsFetchedMsg struct {
 
 func (m *Model) getCurrBranch() *branch.Branch {
 	idx := m.Table.GetCurrItem()
-	if idx < 0 || idx >= len(m.Branches) {
+	branches := m.getFilteredBranches()
+	if idx < 0 || idx >= len(branches) {
 		return nil
 	}
-	return &m.Branches[idx]
+	return &branches[idx]
 }
 
 func (m *Model) GetCurrRow() data.RowData {
 	idx := m.Table.GetCurrItem()
-	if idx < 0 || idx >= len(m.repo.Branches) {
+	branches := m.getFilteredBranches()
+	if idx < 0 || idx >= len(branches) {
 		return nil
 	}
-	b := m.repo.Branches[idx]
+	b := branches[idx].Data
 	pr := findPRForRef(m.Prs, b.Name)
 	return branch.BranchData{
 		Data: b,

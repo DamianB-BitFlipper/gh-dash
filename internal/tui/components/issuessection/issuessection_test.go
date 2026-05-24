@@ -30,3 +30,27 @@ func TestSortIssuesUsesLoadedRows(t *testing.T) {
 	m.sortIssues()
 	require.Equal(t, 1, m.Issues[0].Number)
 }
+
+func TestLocalSearchFiltersIssuesByTitleNumberAndRepo(t *testing.T) {
+	first := data.IssueData{Number: 123, Title: "Math is broken", State: "OPEN"}
+	first.Repository.Name = "calculator"
+	first.Repository.NameWithOwner = "owner/calculator"
+	first.Author.Login = "alice"
+	second := data.IssueData{Number: 456, Title: "Docs typo", State: "OPEN"}
+	second.Repository.Name = "docs"
+	second.Repository.NameWithOwner = "owner/docs"
+	second.Author.Login = "bob"
+	m := Model{Issues: []data.IssueData{first, second}}
+
+	m.LocalSearchValue = "math"
+	require.Len(t, m.filteredIssues(), 1)
+	require.Equal(t, 123, m.GetCurrRow().(*data.IssueData).Number)
+
+	m.LocalSearchValue = "#456"
+	require.Len(t, m.filteredIssues(), 1)
+	require.Equal(t, 456, m.filteredIssues()[0].Number)
+
+	m.LocalSearchValue = "calculator"
+	require.Len(t, m.filteredIssues(), 1)
+	require.Equal(t, 123, m.filteredIssues()[0].Number)
+}

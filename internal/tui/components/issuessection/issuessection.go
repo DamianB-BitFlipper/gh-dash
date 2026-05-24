@@ -3,6 +3,8 @@ package issuessection
 import (
 	"fmt"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"charm.land/bubbles/v2/key"
@@ -58,7 +60,10 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	case tea.KeyMsg:
+		if handled, cmd := m.HandleLocalSearchKey(msg, m.BuildRows); handled {
+			return m, cmd
+		}
 
 		if m.IsSearchFocused() {
 			switch msg.String() {
@@ -273,7 +278,7 @@ func GetSectionColumns(
 
 func (m Model) BuildRows() []table.Row {
 	var rows []table.Row
-	for _, currIssue := range m.Issues {
+	for _, currIssue := range m.filteredIssues() {
 		issueModel := issuerow.Issue{Ctx: m.Ctx, Data: currIssue, ShowAuthorIcon: m.ShowAuthorIcon}
 		rows = append(rows, issueModel.ToTableRow())
 	}
@@ -300,16 +305,55 @@ func (m *Model) updateSortHeader() {
 }
 
 func (m *Model) NumRows() int {
-	return len(m.Issues)
+	return len(m.filteredIssues())
 }
 
 func (m *Model) GetCurrRow() data.RowData {
 	idx := m.Table.GetCurrItem()
-	if idx < 0 || idx >= len(m.Issues) {
+	issues := m.filteredIssues()
+	if idx < 0 || idx >= len(issues) {
 		return nil
 	}
-	issue := m.Issues[idx]
+	issue := issues[idx]
 	return &issue
+}
+
+func (m Model) filteredIssues() []data.IssueData {
+	query := m.LocalSearchQuery()
+	if query == "" {
+		return m.Issues
+	}
+	filtered := make([]data.IssueData, 0, len(m.Issues))
+	for _, issue := range m.Issues {
+		if issueMatchesLocalSearch(issue, query) {
+			filtered = append(filtered, issue)
+		}
+	}
+	return filtered
+}
+
+func issueMatchesLocalSearch(issue data.IssueData, query string) bool {
+	fields := []string{
+		issue.Title,
+		strconv.Itoa(issue.Number),
+		fmt.Sprintf("#%d", issue.Number),
+		issue.Repository.Name,
+		issue.Repository.NameWithOwner,
+		issue.Author.Login,
+		issue.State,
+	}
+	for _, assignee := range issue.Assignees.Nodes {
+		fields = append(fields, assignee.Login)
+	}
+	for _, label := range issue.Labels.Nodes {
+		fields = append(fields, label.Name)
+	}
+	for _, field := range fields {
+		if strings.Contains(strings.ToLower(field), query) {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Model) FetchNextPageSectionRows() []tea.Cmd {

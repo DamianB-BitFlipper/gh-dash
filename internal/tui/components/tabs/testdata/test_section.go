@@ -105,6 +105,10 @@ func (t *TestSection) IsSearchFocused() bool {
 	panic("unimplemented")
 }
 
+func (t *TestSection) IsLocalSearchFocused() bool {
+	panic("unimplemented")
+}
+
 // LastItem implements section.Section.
 func (t *TestSection) LastItem() int {
 	panic("unimplemented")
@@ -157,6 +161,10 @@ func (t *TestSection) SetIsPromptConfirmationShown(val bool) tea.Cmd {
 
 // SetIsSearching implements section.Section.
 func (t *TestSection) SetIsSearching(val bool) tea.Cmd {
+	panic("unimplemented")
+}
+
+func (t *TestSection) SetIsLocalSearching(val bool) tea.Cmd {
 	panic("unimplemented")
 }
 

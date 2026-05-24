@@ -45,6 +45,7 @@ type KeyMap struct {
 	NextSection  key.Binding
 	PrevSection  key.Binding
 	Search       key.Binding
+	LocalSearch  key.Binding
 	CopyUrl      key.Binding
 	CopyNumber   key.Binding
 	Help         key.Binding
@@ -168,6 +169,7 @@ func (k KeyMap) AppKeys() []key.Binding {
 		k.CopyNumber,
 		k.CopyUrl,
 		k.Search,
+		k.LocalSearch,
 	}
 }
 
@@ -235,6 +237,10 @@ var Keys = &KeyMap{
 	Search: key.NewBinding(
 		key.WithKeys("/"),
 		key.WithHelp("/", "search"),
+	),
+	LocalSearch: key.NewBinding(
+		key.WithKeys("s"),
+		key.WithHelp("s", "filter rows"),
 	),
 	CopyNumber: key.NewBinding(
 		key.WithKeys("y"),
@@ -349,6 +355,8 @@ func rebindUniversal(universal []config.Keybinding) error {
 			key = &Keys.PrevSection
 		case "search":
 			key = &Keys.Search
+		case "localSearch":
+			key = &Keys.LocalSearch
 		case "copyurl":
 			key = &Keys.CopyUrl
 		case "copyNumber":

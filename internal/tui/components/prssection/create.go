@@ -8,7 +8,6 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/git"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/common"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/fuzzyselect"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
@@ -24,6 +23,19 @@ type createPRBranchesFetchedMsg struct {
 	Head      string
 	Base      string
 	Err       error
+}
+
+type RepoBranches struct {
+	RepoName string
+	Branches []fuzzyselect.Suggestion
+	Head     string
+	Base     string
+	Err      error
+}
+
+type RefreshRepoBranchesMsg struct {
+	SectionId int
+	RepoName  string
 }
 
 var runCreatePRRepoCommand = common.RunRepoCommand
@@ -43,41 +55,43 @@ func (m *Model) validateCanCreatePR() error {
 }
 
 func (m *Model) prepareCreatePRForm() (tea.Cmd, error) {
+	return m.PrepareCreatePRForm(nil)
+}
+
+func (m *Model) PrepareCreatePRForm(branches *RepoBranches) (tea.Cmd, error) {
 	if err := m.validateCanCreatePR(); err != nil {
 		return nil, err
 	}
 	repoName, _ := m.repoFromFilters()
-	repoPath, _ := common.GetRepoLocalPath(repoName, m.Ctx.Config.RepoPaths)
-	repoPath = common.ExpandRepoPath(repoPath)
 	m.createPRBranchRequestID++
-	requestID := m.createPRBranchRequestID
-	m.CreatePRForm.SetBranchesLoading()
-	return func() tea.Msg {
-		repo, err := git.GetRepo(repoPath)
-		if err != nil {
-			return createPRBranchesFetchedMsg{RepoName: repoName, RequestID: requestID, Err: err}
+	if branches != nil && branches.RepoName == repoName {
+		if branches.Err != nil {
+			m.CreatePRForm.SetBranchesError(branches.Err)
+		} else {
+			m.CreatePRForm.SetBranches(branches.Branches, branches.Head, branches.Base)
 		}
+	} else {
+		m.CreatePRForm.SetBranchesLoading()
+	}
 
-		branches := make([]fuzzyselect.Suggestion, 0, len(repo.Branches))
-		base := ""
-		for _, branch := range repo.Branches {
-			detail := ""
-			if branch.IsCheckedOut {
-				detail = "current"
-			}
-			branches = append(branches, fuzzyselect.Suggestion{Value: branch.Name, Detail: detail})
-			if base == "" && (branch.Name == "main" || branch.Name == "master") {
-				base = branch.Name
-			}
-		}
-		return createPRBranchesFetchedMsg{
-			RepoName:  repoName,
-			RequestID: requestID,
-			Branches:  branches,
-			Head:      repo.HeadBranchName,
-			Base:      base,
-		}
+	return func() tea.Msg {
+		return RefreshRepoBranchesMsg{SectionId: m.Id, RepoName: repoName}
 	}, nil
+}
+
+func (m *Model) ApplyCreatePRBranches(branches RepoBranches) bool {
+	repoName, ok := m.repoFromFilters()
+	if !m.IsPromptConfirmationShown || m.GetPromptConfirmationAction() != "create_pr" ||
+		!ok || branches.RepoName != repoName {
+		return false
+	}
+	if branches.Err != nil {
+		m.CreatePRForm.SetBranchesError(branches.Err)
+		m.Ctx.Error = branches.Err
+		return true
+	}
+	m.CreatePRForm.SetBranches(branches.Branches, branches.Head, branches.Base)
+	return true
 }
 
 func (m *Model) createPR(title string, body string, head string, base string) (tea.Cmd, error) {

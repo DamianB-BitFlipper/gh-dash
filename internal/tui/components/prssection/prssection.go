@@ -3,6 +3,8 @@ package prssection
 import (
 	"fmt"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"charm.land/bubbles/v2/key"
@@ -29,6 +31,8 @@ type Model struct {
 	CreatePRForm            createPRForm
 	createPRBranchRequestID uint64
 }
+
+var fetchPullRequestsForSectionRefresh = data.FetchPullRequests
 
 func NewModel(
 	id int,
@@ -67,6 +71,9 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if handled, cmd := m.HandleLocalSearchKey(msg, m.BuildRows); handled {
+			return m, cmd
+		}
 
 		if m.IsSearchFocused() {
 			switch msg.String() {
@@ -267,22 +274,31 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 			m.UpdateTotalItemsCount(m.TotalCount)
 		}
 
+	case SectionPullRequestsRefreshedMsg:
+		m.mergeRefreshedPRs(msg.Prs)
+		m.sortPRs()
+		m.TotalCount = msg.TotalCount
+		m.PageInfo = &msg.PageInfo
+		m.SetIsLoading(false)
+		m.Table.SetRows(m.BuildRows())
+		m.Table.UpdateLastUpdated(time.Now())
+		m.UpdateTotalItemsCount(m.TotalCount)
+
 	case createPRCreatedMsg:
 		m.ResetRows()
 		return m, tea.Batch(m.FetchNextPageSectionRows()...)
 
 	case createPRBranchesFetchedMsg:
-		repoName, ok := m.repoFromFilters()
-		if !m.IsPromptConfirmationShown || m.GetPromptConfirmationAction() != "create_pr" ||
-			!ok || msg.RepoName != repoName || msg.RequestID != m.createPRBranchRequestID {
+		if msg.RequestID != m.createPRBranchRequestID {
 			return m, nil
 		}
-		if msg.Err != nil {
-			m.CreatePRForm.SetBranchesError(msg.Err)
-			m.Ctx.Error = msg.Err
-			return m, nil
-		}
-		m.CreatePRForm.SetBranches(msg.Branches, msg.Head, msg.Base)
+		m.ApplyCreatePRBranches(RepoBranches{
+			RepoName: msg.RepoName,
+			Branches: msg.Branches,
+			Head:     msg.Head,
+			Base:     msg.Base,
+			Err:      msg.Err,
+		})
 		return m, nil
 	}
 
@@ -308,6 +324,29 @@ func (m *Model) EnrichPR(data data.EnrichedPullRequestData) {
 		m.Prs[i].IsEnriched = true
 		m.Prs[i].Enriched = data
 	}
+}
+
+func (m *Model) mergeRefreshedPRs(refreshed []prrow.Data) {
+	oldByURL := map[string]prrow.Data{}
+	for _, pr := range m.Prs {
+		if pr.Primary != nil && pr.Primary.Url != "" {
+			oldByURL[pr.Primary.Url] = pr
+		}
+	}
+
+	for i, pr := range refreshed {
+		if pr.Primary == nil || pr.Primary.Url == "" {
+			continue
+		}
+		old, ok := oldByURL[pr.Primary.Url]
+		if !ok || !old.IsEnriched || pr.IsEnriched {
+			continue
+		}
+		refreshed[i].IsEnriched = true
+		refreshed[i].Enriched = old.Enriched
+	}
+
+	m.Prs = refreshed
 }
 
 func (m *Model) sortPRs() {
@@ -508,7 +547,8 @@ func GetSectionColumns(
 func (m Model) BuildRows() []table.Row {
 	var rows []table.Row
 	currItem := m.Table.GetCurrItem()
-	for i, currPr := range m.Prs {
+	prs := m.filteredPRs()
+	for i, currPr := range prs {
 		prModel := prrow.PullRequest{
 			Ctx:     m.Ctx,
 			Data:    &currPr,
@@ -528,7 +568,7 @@ func (m Model) BuildRows() []table.Row {
 }
 
 func (m *Model) NumRows() int {
-	return len(m.Prs)
+	return len(m.filteredPRs())
 }
 
 type SectionPullRequestsFetchedMsg struct {
@@ -538,13 +578,66 @@ type SectionPullRequestsFetchedMsg struct {
 	TaskId     string
 }
 
+type SectionPullRequestsRefreshedMsg struct {
+	Prs        []prrow.Data
+	TotalCount int
+	PageInfo   data.PageInfo
+}
+
 func (m *Model) GetCurrRow() data.RowData {
 	idx := m.Table.GetCurrItem()
-	if idx < 0 || idx >= len(m.Prs) {
+	prs := m.filteredPRs()
+	if idx < 0 || idx >= len(prs) {
 		return nil
 	}
-	pr := m.Prs[idx]
+	pr := prs[idx]
 	return &pr
+}
+
+func (m Model) filteredPRs() []prrow.Data {
+	query := m.LocalSearchQuery()
+	if query == "" {
+		return m.Prs
+	}
+	filtered := make([]prrow.Data, 0, len(m.Prs))
+	for _, pr := range m.Prs {
+		if prMatchesLocalSearch(pr, query) {
+			filtered = append(filtered, pr)
+		}
+	}
+	return filtered
+}
+
+func prMatchesLocalSearch(pr prrow.Data, query string) bool {
+	if pr.Primary == nil {
+		return false
+	}
+	p := pr.Primary
+	fields := []string{
+		p.Title,
+		strconv.Itoa(p.Number),
+		fmt.Sprintf("#%d", p.Number),
+		p.Repository.Name,
+		p.Repository.NameWithOwner,
+		p.Author.Login,
+		p.HeadRefName,
+		p.BaseRefName,
+		p.State,
+		p.ReviewDecision,
+		p.Mergeable,
+	}
+	for _, assignee := range p.Assignees.Nodes {
+		fields = append(fields, assignee.Login)
+	}
+	for _, label := range p.Labels.Nodes {
+		fields = append(fields, label.Name)
+	}
+	for _, field := range fields {
+		if strings.Contains(strings.ToLower(field), query) {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Model) FetchNextPageSectionRows() []tea.Cmd {
@@ -619,6 +712,36 @@ func (m *Model) FetchNextPageSectionRows() []tea.Cmd {
 	}
 
 	return cmds
+}
+
+func (m *Model) RefreshSectionRows() tea.Cmd {
+	if m == nil {
+		return nil
+	}
+
+	filters := m.GetFilters()
+	limit := m.Config.Limit
+	if limit == nil {
+		limit = &m.Ctx.Config.Defaults.PrsLimit
+	}
+
+	return func() tea.Msg {
+		res, err := fetchPullRequestsForSectionRefresh(filters, data.SearchSortUpdated, *limit, nil)
+		if err != nil {
+			return constants.ErrMsg{Err: err}
+		}
+
+		prs := make([]prrow.Data, 0, len(res.Prs))
+		for _, pr := range res.Prs {
+			prs = append(prs, prrow.Data{Primary: &pr})
+		}
+
+		return SectionPullRequestsRefreshedMsg{
+			Prs:        prs,
+			TotalCount: res.TotalCount,
+			PageInfo:   res.PageInfo,
+		}
+	}
 }
 
 func (m *Model) ResetRows() {

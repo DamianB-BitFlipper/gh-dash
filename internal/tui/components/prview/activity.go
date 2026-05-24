@@ -7,6 +7,7 @@ import (
 
 	"charm.land/glamour/v2"
 	"charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/compat"
 
 	"github.com/dlvhdr/gh-dash/v4/internal/data"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
@@ -21,7 +22,7 @@ type RenderedActivity struct {
 
 func (m *Model) renderActivity() string {
 	width := m.getIndentedContentWidth()
-	markdownRenderer := markdown.GetMarkdownRenderer(width)
+	markdownRenderer := markdown.GetMarkdownRenderer(max(1, width-4))
 	bodyStyle := lipgloss.NewStyle()
 
 	var activities []RenderedActivity
@@ -89,7 +90,8 @@ func (m *Model) renderActivity() string {
 			renderedActivities = append(renderedActivities, activity.RenderedString)
 		}
 		title := m.ctx.Styles.Common.MainTextStyle.MarginBottom(1).Underline(true).Render(
-			fmt.Sprintf("%s  %d comments", constants.CommentsIcon, len(activities)))
+			fmt.Sprintf("%s  %d comments", constants.CommentsIcon, len(activities)),
+		)
 		body = lipgloss.JoinVertical(lipgloss.Left, renderedActivities...)
 		body = lipgloss.JoinVertical(lipgloss.Left, title, body)
 	}
@@ -114,64 +116,101 @@ func (m *Model) renderComment(
 	markdownRenderer glamour.TermRenderer,
 ) (string, error) {
 	width := m.getIndentedContentWidth()
-	authorAndTime := lipgloss.NewStyle().
-		Width(width).
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(m.ctx.Theme.FaintBorder).Render(
-		lipgloss.JoinHorizontal(
-			lipgloss.Top,
-			m.ctx.Styles.Common.MainTextStyle.Render(comment.Author),
-			" ",
-			lipgloss.NewStyle().
-				Foreground(m.ctx.Theme.FaintText).
-				Render(utils.TimeElapsed(comment.UpdatedAt)),
-		))
+	authorAndTime := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		m.ctx.Styles.Common.MainTextStyle.Render(comment.Author),
+		" ",
+		lipgloss.NewStyle().
+			Foreground(m.ctx.Theme.FaintText).
+			Render(utils.TimeElapsed(comment.UpdatedAt)),
+	)
 
-	var header string
+	var metadata []string
+	metadata = append(metadata, authorAndTime)
 	if comment.Path != nil && comment.Line != nil {
-		filePath := lipgloss.NewStyle().Foreground(m.ctx.Theme.FaintText).Width(width).Render(
+		metadata = append(metadata, lipgloss.NewStyle().Foreground(m.ctx.Theme.FaintText).Render(
 			fmt.Sprintf(
 				"%s#l%d",
 				*comment.Path,
 				*comment.Line,
 			),
-		)
-		header = lipgloss.JoinVertical(lipgloss.Left, authorAndTime, filePath, "")
-	} else {
-		header = authorAndTime
+		))
 	}
 
 	body := lineCleanupRegex.ReplaceAllString(comment.Body, "")
 	body, err := markdownRenderer.Render(body)
 
-	return lipgloss.JoinVertical(
-		lipgloss.Left,
-		header,
+	return m.renderActivityCard(
+		width,
+		m.ctx.Theme.SecondaryBorder,
+		lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			m.ctx.Styles.Common.CommentGlyph,
+			" ",
+			lipgloss.JoinVertical(lipgloss.Left, metadata...),
+		),
 		body,
 	), err
+}
+
+func (m *Model) renderActivityCard(
+	width int,
+	border compat.AdaptiveColor,
+	header string,
+	body string,
+) string {
+	return lipgloss.NewStyle().
+		Width(width).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(border).
+		Padding(0, 1).
+		MarginBottom(1).
+		Render(lipgloss.JoinVertical(
+			lipgloss.Left,
+			header,
+			"",
+			body,
+		))
 }
 
 func (m *Model) renderReview(
 	review data.Review,
 	markdownRenderer glamour.TermRenderer,
 ) (string, error) {
+	width := m.getIndentedContentWidth()
 	header := m.renderReviewHeader(review)
 	body, err := markdownRenderer.Render(review.Body)
-	return lipgloss.JoinVertical(
-		lipgloss.Left,
+	return m.renderActivityCard(
+		width,
+		m.reviewBorderColor(review.State),
 		header,
 		body,
 	), err
 }
 
+func (m *Model) reviewBorderColor(state string) compat.AdaptiveColor {
+	switch state {
+	case "APPROVED":
+		return m.ctx.Theme.SuccessText
+	case "CHANGES_REQUESTED":
+		return m.ctx.Theme.ErrorText
+	case "PENDING":
+		return m.ctx.Theme.WarningText
+	}
+
+	return m.ctx.Theme.FaintBorder
+}
+
 func (m *Model) renderReviewHeader(review data.Review) string {
-	return lipgloss.JoinHorizontal(lipgloss.Top,
+	return lipgloss.JoinHorizontal(
+		lipgloss.Left,
 		m.renderReviewDecision(review.State),
 		" ",
 		m.ctx.Styles.Common.MainTextStyle.Render(review.Author.Login),
 		" ",
 		lipgloss.NewStyle().Foreground(m.ctx.Theme.FaintText).Render(
-			"reviewed "+utils.TimeElapsed(review.UpdatedAt)),
+			"reviewed "+utils.TimeElapsed(review.UpdatedAt),
+		),
 	)
 }
 

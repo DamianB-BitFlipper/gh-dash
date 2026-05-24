@@ -56,8 +56,8 @@ var IssueKeys = IssueKeyMap{
 		key.WithHelp("t", "toggle smart filtering"),
 	),
 	SortOrder: key.NewBinding(
-		key.WithKeys("s"),
-		key.WithHelp("s", "sort order"),
+		key.WithKeys("S"),
+		key.WithHelp("S", "sort order"),
 	),
 	ViewPRs: key.NewBinding(
 		key.WithHelp("", "switch to notifications"),

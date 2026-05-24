@@ -19,7 +19,7 @@ type RenderedActivity struct {
 
 func (m *Model) renderActivity() string {
 	width := m.getIndentedContentWidth() - 2
-	markdownRenderer := markdown.GetMarkdownRenderer(width)
+	markdownRenderer := markdown.GetMarkdownRenderer(max(1, width-4))
 
 	var activity []RenderedActivity
 	for _, comment := range m.issue.Data.Comments.Nodes {
@@ -68,25 +68,30 @@ func (m *Model) renderComment(
 	markdownRenderer glamour.TermRenderer,
 ) (string, error) {
 	width := m.getIndentedContentWidth() - 2
-	header := lipgloss.NewStyle().
-		Width(width).
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(m.ctx.Theme.FaintBorder).Render(
-		lipgloss.JoinHorizontal(
-			lipgloss.Top,
-			m.ctx.Styles.Common.MainTextStyle.Render(comment.Author.Login),
-			" ",
-			lipgloss.NewStyle().
-				Foreground(m.ctx.Theme.FaintText).
-				Render(utils.TimeElapsed(comment.UpdatedAt)),
-		))
+	header := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		m.ctx.Styles.Common.CommentGlyph,
+		" ",
+		m.ctx.Styles.Common.MainTextStyle.Render(comment.Author.Login),
+		" ",
+		lipgloss.NewStyle().
+			Foreground(m.ctx.Theme.FaintText).
+			Render(utils.TimeElapsed(comment.UpdatedAt)),
+	)
 
 	body := lineCleanupRegex.ReplaceAllString(comment.Body, "")
 	body, err := markdownRenderer.Render(body)
 
-	return lipgloss.JoinVertical(
-		lipgloss.Left,
-		header,
-		body,
-	), err
+	return lipgloss.NewStyle().
+		Width(width).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(m.ctx.Theme.SecondaryBorder).
+		Padding(0, 1).
+		MarginBottom(1).
+		Render(lipgloss.JoinVertical(
+			lipgloss.Left,
+			header,
+			"",
+			body,
+		)), err
 }

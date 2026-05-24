@@ -274,6 +274,73 @@ func TestMaybeSchedulePRWatch_OverviewWithoutPendingChecks(t *testing.T) {
 	require.Empty(t, m.prWatchURL)
 }
 
+func TestVisibleRefreshTargetsIncludesCurrentPRSection(t *testing.T) {
+	cfg, err := config.ParseConfig(config.Location{
+		ConfigFlag:       "../config/testdata/test-config.yml",
+		SkipGlobalConfig: true,
+	})
+	require.NoError(t, err)
+	cfg.Defaults.RefetchIntervalMinutes = 1
+
+	ctx := &context.ProgramContext{
+		Config: &cfg,
+		View:   config.PRsView,
+	}
+	ctx.Theme = theme.ParseTheme(ctx.Config)
+	ctx.Styles = context.InitStyles(ctx.Theme)
+
+	prSec := prssection.NewModel(1, ctx, config.PrsSectionConfig{Filters: "author:@me"}, time.Now(), time.Now())
+	m := Model{
+		ctx:           ctx,
+		currSectionId: 1,
+		prs:           []section.Section{nil, &prSec},
+	}
+
+	targets := m.visibleRefreshTargets()
+
+	require.Len(t, targets, 1)
+	require.Equal(t, visibleRefreshPRSection, targets[0].kind)
+	require.Equal(t, 1, targets[0].sectionId)
+	require.Equal(t, time.Minute, targets[0].interval)
+}
+
+func TestVisibleRefreshTargetsIncludesRepoBranchesForRepoFilteredPRSection(t *testing.T) {
+	cfg, err := config.ParseConfig(config.Location{
+		ConfigFlag:       "../config/testdata/test-config.yml",
+		SkipGlobalConfig: true,
+	})
+	require.NoError(t, err)
+	cfg.Defaults.RefetchIntervalMinutes = 1
+	cfg.RepoPaths = map[string]string{"owner/repo": "/tmp/repo"}
+
+	ctx := &context.ProgramContext{
+		Config: &cfg,
+		View:   config.PRsView,
+	}
+	ctx.Theme = theme.ParseTheme(ctx.Config)
+	ctx.Styles = context.InitStyles(ctx.Theme)
+
+	prSec := prssection.NewModel(1, ctx, config.PrsSectionConfig{Filters: "repo:owner/repo is:open"}, time.Now(), time.Now())
+	m := Model{
+		ctx:           ctx,
+		currSectionId: 1,
+		prs:           []section.Section{nil, &prSec},
+	}
+
+	targets := m.visibleRefreshTargets()
+
+	found := false
+	for _, target := range targets {
+		if target.kind == visibleRefreshRepoBranches {
+			found = true
+			require.Equal(t, "owner/repo", target.repoName)
+			require.Equal(t, 1, target.sectionId)
+			require.Equal(t, time.Minute, target.interval)
+		}
+	}
+	require.True(t, found)
+}
+
 func TestNotificationView_SwitchViewWithSKey_WhileViewingPR(t *testing.T) {
 	// Test that forward view navigation clears PR notification subject state
 	cfg, err := config.ParseConfig(config.Location{

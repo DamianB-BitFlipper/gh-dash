@@ -141,6 +141,55 @@ func TestSortPRsUsesLoadedRows(t *testing.T) {
 	require.Equal(t, 1, m.Prs[0].Primary.Number)
 }
 
+func TestMergeRefreshedPRsPreservesEnrichedData(t *testing.T) {
+	m := Model{
+		Prs: []prrow.Data{
+			{
+				Primary:    &data.PullRequestData{Number: 1, Url: "https://github.com/owner/repo/pull/1"},
+				IsEnriched: true,
+				Enriched: data.EnrichedPullRequestData{
+					Number: 1,
+					Url:    "https://github.com/owner/repo/pull/1",
+					Title:  "enriched title",
+				},
+			},
+		},
+	}
+
+	m.mergeRefreshedPRs([]prrow.Data{
+		{Primary: &data.PullRequestData{Number: 1, Url: "https://github.com/owner/repo/pull/1", Title: "fresh title"}},
+	})
+
+	require.Len(t, m.Prs, 1)
+	require.Equal(t, "fresh title", m.Prs[0].Primary.Title)
+	require.True(t, m.Prs[0].IsEnriched)
+	require.Equal(t, "enriched title", m.Prs[0].Enriched.Title)
+}
+
+func TestLocalSearchFiltersPRsByTitleNumberAndBranch(t *testing.T) {
+	first := data.PullRequestData{Number: 123, Title: "Add math tests", HeadRefName: "feature/math", BaseRefName: "main"}
+	first.Repository.Name = "repo"
+	first.Repository.NameWithOwner = "owner/repo"
+	first.Author.Login = "alice"
+	second := data.PullRequestData{Number: 456, Title: "Update docs", HeadRefName: "docs", BaseRefName: "main"}
+	second.Repository.Name = "repo"
+	second.Repository.NameWithOwner = "owner/repo"
+	second.Author.Login = "bob"
+	m := Model{Prs: []prrow.Data{{Primary: &first}, {Primary: &second}}}
+
+	m.LocalSearchValue = "math"
+	require.Len(t, m.filteredPRs(), 1)
+	require.Equal(t, 123, m.GetCurrRow().(*prrow.Data).Primary.Number)
+
+	m.LocalSearchValue = "#456"
+	require.Len(t, m.filteredPRs(), 1)
+	require.Equal(t, 456, m.filteredPRs()[0].Primary.Number)
+
+	m.LocalSearchValue = "feature/math"
+	require.Len(t, m.filteredPRs(), 1)
+	require.Equal(t, 123, m.filteredPRs()[0].Primary.Number)
+}
+
 func TestRepoFromFilters(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -209,6 +258,26 @@ func TestCreatePRStartsTaskWhenRepoScoped(t *testing.T) {
 	require.NotNil(t, cmd)
 	require.Contains(t, started.Id, "create_pr_owner_name")
 	require.Equal(t, "Creating PR in owner/name", started.StartText)
+}
+
+func TestPrepareCreatePRFormUsesCachedBranchesAndRequestsRefresh(t *testing.T) {
+	m := newTestModel("")
+	m.SearchValue = "repo:owner/name is:open"
+	m.Ctx.Config = &config.Config{RepoPaths: map[string]string{"owner/name": "/tmp/name"}}
+
+	cmd, err := m.PrepareCreatePRForm(&RepoBranches{
+		RepoName: "owner/name",
+		Branches: []fuzzyselect.Suggestion{{Value: "feature"}, {Value: "main"}},
+		Head:     "feature",
+		Base:     "main",
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, cmd)
+	require.False(t, m.CreatePRForm.BranchesLoading())
+	require.Equal(t, "feature", m.CreatePRForm.Head())
+	require.Equal(t, "main", m.CreatePRForm.Base())
+	require.Equal(t, RefreshRepoBranchesMsg{SectionId: m.Id, RepoName: "owner/name"}, cmd())
 }
 
 func TestCreatePRRunsGhCreateWithoutWeb(t *testing.T) {

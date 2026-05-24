@@ -25,6 +25,7 @@ import (
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/branch"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/branchsidebar"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/footer"
+	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/fuzzyselect"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/issuessection"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/issueview"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/notificationrow"
@@ -46,27 +47,35 @@ import (
 )
 
 type Model struct {
-	keys             *keys.KeyMap
-	sidebar          sidebar.Model
-	prView           prview.Model
-	issueSidebar     issueview.Model
-	branchSidebar    branchsidebar.Model
-	notificationView notificationview.Model
-	currSectionId    int
-	footer           footer.Model
-	repo             section.Section
-	prs              []section.Section
-	issues           []section.Section
-	notifications    []section.Section
-	tabs             tabs.Model
-	ctx              *context.ProgramContext
-	taskSpinner      spinner.Model
-	tasks            map[string]context.Task
-	prPreviewStates  map[string]prPreviewState
-	copySelection    copySelectionModel
-	messagePopup     *messagePopup
-	prWatchURL       string
-	positionOverride string // "" means no override, "right" or "bottom"
+	keys              *keys.KeyMap
+	sidebar           sidebar.Model
+	prView            prview.Model
+	issueSidebar      issueview.Model
+	branchSidebar     branchsidebar.Model
+	notificationView  notificationview.Model
+	currSectionId     int
+	footer            footer.Model
+	repo              section.Section
+	prs               []section.Section
+	issues            []section.Section
+	notifications     []section.Section
+	tabs              tabs.Model
+	ctx               *context.ProgramContext
+	taskSpinner       spinner.Model
+	tasks             map[string]context.Task
+	prPreviewStates   map[string]prPreviewState
+	copySelection     copySelectionModel
+	messagePopup      *messagePopup
+	visibleRefreshes  map[string]int
+	visibleRefreshGen int
+	repoBranches      map[string]repoBranchesState
+	prWatchURL        string // kept for older tests; visibleRefreshes owns scheduling
+	positionOverride  string // "" means no override, "right" or "bottom"
+}
+
+type repoBranchesState struct {
+	data    prssection.RepoBranches
+	loading bool
 }
 
 type prPreviewState struct {
@@ -77,11 +86,13 @@ type prPreviewState struct {
 func NewModel(location config.Location) Model {
 	taskSpinner := spinner.Model{Spinner: spinner.Dot}
 	m := Model{
-		keys:            keys.Keys,
-		sidebar:         sidebar.NewModel(),
-		taskSpinner:     taskSpinner,
-		tasks:           map[string]context.Task{},
-		prPreviewStates: map[string]prPreviewState{},
+		keys:             keys.Keys,
+		sidebar:          sidebar.NewModel(),
+		taskSpinner:      taskSpinner,
+		tasks:            map[string]context.Task{},
+		prPreviewStates:  map[string]prPreviewState{},
+		visibleRefreshes: map[string]int{},
+		repoBranches:     map[string]repoBranchesState{},
 	}
 
 	version := "dev"
@@ -197,7 +208,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		if currSection != nil && (currSection.IsSearchFocused() ||
+		if currSection != nil && (currSection.IsSearchFocused() || currSection.IsLocalSearchFocused() ||
 			currSection.IsPromptConfirmationFocused()) {
 			cmd = m.updateSection(currSection.GetId(), currSection.GetType(), msg)
 			return m, cmd
@@ -322,6 +333,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, cmd
 			}
 
+		case key.Matches(msg, m.keys.LocalSearch):
+			if currSection != nil {
+				cmd = currSection.SetIsLocalSearching(true)
+				return m, cmd
+			}
+
 		case key.Matches(msg, m.keys.Help):
 			m.footer.ShowAll = !m.footer.ShowAll
 			m.syncMainContentDimensions()
@@ -394,6 +411,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case m.ctx.View == config.PRsView:
 			switch {
+			case key.Matches(msg, keys.PRKeys.Create):
+				var err error
+				prSection, ok := currSection.(*prssection.Model)
+				if !ok || prSection == nil {
+					return m, nil
+				}
+				repoName, ok := prSection.RepoFromFilters()
+				if !ok {
+					cmd, err = prSection.PrepareCreatePRForm(nil)
+				} else {
+					cmd, err = prSection.PrepareCreatePRForm(m.cachedRepoBranches(repoName))
+				}
+				if err != nil {
+					m.ctx.Error = err
+					return m, nil
+				}
+				prSection.SetPromptConfirmationAction("create_pr")
+				blinkCmd := prSection.SetIsPromptConfirmationShown(true)
+				return m, tea.Batch(cmd, blinkCmd)
+
 			case key.Matches(msg, keys.PRKeys.PrevSidebarTab),
 				key.Matches(msg, keys.PRKeys.NextSidebarTab):
 				var scmds []tea.Cmd
@@ -708,12 +745,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.setCurrentViewSections(newSections)
 		m.tabs.SetCurrSectionId(1)
 		cmds = append(cmds, fetchSectionsCmds, m.tabs.Init(), fetchUser,
-			m.doRefreshAtInterval(), m.doUpdateFooterAtInterval())
+			m.doRefreshAtInterval(), m.doUpdateFooterAtInterval(), m.reconcileVisibleRefreshes())
 
 	case intervalRefresh:
 		newSections, fetchSectionsCmds := m.fetchAllViewSections()
 		m.setCurrentViewSections(newSections)
-		cmds = append(cmds, fetchSectionsCmds, m.doRefreshAtInterval())
+		cmds = append(cmds, fetchSectionsCmds, m.doRefreshAtInterval(), m.reconcileVisibleRefreshes())
 
 	case userFetchedMsg:
 		m.ctx.User = msg.user
@@ -770,39 +807,61 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			log.Error("failed enriching pr", "err", msg.Err)
 		}
 
-	case prWatchTick:
-		if msg.url != m.prWatchURL || msg.url != m.prView.CurrentPRURL() || !m.shouldWatchCurrentPR() {
-			if msg.url == m.prWatchURL {
-				m.prWatchURL = ""
-			}
+	case visibleRefreshTick:
+		if m.visibleRefreshes == nil || m.visibleRefreshes[msg.target.key] != msg.generation {
 			return m, nil
 		}
+		return m, m.fetchVisibleRefresh(msg.target)
+
+	case prssection.RefreshRepoBranchesMsg:
+		target := m.repoBranchesRefreshTarget(msg.SectionId, msg.RepoName, 0)
+		if target.key == "" {
+			return m, nil
+		}
+		if m.repoBranches == nil {
+			m.repoBranches = map[string]repoBranchesState{}
+		}
+		m.repoBranches[msg.RepoName] = repoBranchesState{
+			data:    prssection.RepoBranches{RepoName: msg.RepoName},
+			loading: true,
+		}
+		return m, m.fetchVisibleRefresh(target)
+
+	case prWatchTick:
 		return m, fetchPRWatch(msg.url)
 
-	case prWatchFetchedMsg:
-		if msg.url != m.prWatchURL || msg.url != m.prView.CurrentPRURL() || !m.shouldWatchCurrentPR() {
-			return m, nil
+	case visibleRefreshFetchedMsg:
+		if m.visibleRefreshes != nil {
+			delete(m.visibleRefreshes, msg.target.key)
 		}
-		m.prWatchURL = ""
-		if msg.err != nil {
-			log.Error("failed refreshing watched PR", "err", msg.err)
-			return m, nil
+		if !m.isVisibleRefreshTargetCurrent(msg.target) {
+			cmds = append(cmds, m.reconcileVisibleRefreshes())
+			break
 		}
-		m.prView.SetEnrichedPR(msg.data)
-		if pr := m.notificationView.GetSubjectPR(); pr != nil && pr.Primary != nil && pr.Primary.Url == msg.url {
-			prData := msg.data.ToPullRequestData()
-			m.notificationView.SetSubjectPR(&prrow.Data{
-				Primary:    &prData,
-				Enriched:   msg.data,
-				IsEnriched: true,
-			}, m.notificationView.GetSubjectId())
+		if msg.err != nil && msg.target.kind != visibleRefreshRepoBranches {
+			log.Error("failed refreshing visible resource", "kind", msg.target.kind, "err", msg.err)
+			cmds = append(cmds, m.reconcileVisibleRefreshes())
+			break
 		}
-		if m.ctx.View == config.PRsView && m.currSectionId >= 0 && m.currSectionId < len(m.prs) {
-			if prSection, ok := m.prs[m.currSectionId].(*prssection.Model); ok {
-				prSection.EnrichPR(msg.data)
+		switch msg.target.kind {
+		case visibleRefreshPRPreview:
+			if prMsg, ok := msg.data.(prWatchFetchedMsg); ok {
+				cmds = append(cmds, m.applyPRWatchFetched(prMsg))
+			}
+		case visibleRefreshPRSection:
+			if sectionMsg, ok := msg.data.(prssection.SectionPullRequestsRefreshedMsg); ok {
+				cmds = append(cmds, m.updateSection(msg.target.sectionId, prssection.SectionType, sectionMsg))
+				cmds = append(cmds, m.syncSidebar())
+			}
+		case visibleRefreshRepoBranches:
+			if branchMsg, ok := msg.data.(prssection.RepoBranches); ok {
+				cmds = append(cmds, m.applyRepoBranchesRefresh(branchMsg, msg.target.sectionId))
 			}
 		}
-		cmds = append(cmds, m.syncSidebar(), m.maybeSchedulePRWatch())
+		cmds = append(cmds, m.reconcileVisibleRefreshes())
+
+	case prWatchFetchedMsg:
+		cmds = append(cmds, m.applyPRWatchFetched(msg), m.maybeSchedulePRWatch())
 
 	case notificationPRFetchedMsg:
 		if msg.Err == nil {
@@ -1353,21 +1412,21 @@ func (m *Model) cyclePreview() tea.Cmd {
 		m.positionOverride = "right"
 		m.syncMainContentDimensions()
 		m.syncProgramContext()
-		return m.syncSidebar()
+		return tea.Batch(m.syncSidebar(), m.reconcileVisibleRefreshes())
 	}
 
 	if m.ctx.PreviewPosition == "right" {
 		m.positionOverride = "bottom"
 		m.syncMainContentDimensions()
 		m.syncProgramContext()
-		return m.syncSidebar()
+		return tea.Batch(m.syncSidebar(), m.reconcileVisibleRefreshes())
 	}
 
 	m.sidebar.IsOpen = false
 	m.positionOverride = ""
 	m.syncMainContentDimensions()
 	m.syncProgramContext()
-	return nil
+	return m.reconcileVisibleRefreshes()
 }
 
 func (m *Model) openSidebarForPRInput(setFunc func(bool) tea.Cmd) tea.Cmd {
@@ -1990,9 +2049,35 @@ func fetchUser() tea.Msg {
 
 type intervalRefresh time.Time
 
-type prWatchTick struct {
-	url string
+type visibleRefreshKind string
+
+const (
+	visibleRefreshPRPreview    visibleRefreshKind = "pr-preview"
+	visibleRefreshPRSection    visibleRefreshKind = "pr-section"
+	visibleRefreshRepoBranches visibleRefreshKind = "repo-branches"
+)
+
+type visibleRefreshTarget struct {
+	key       string
+	kind      visibleRefreshKind
+	url       string
+	repoName  string
+	sectionId int
+	interval  time.Duration
 }
+
+type visibleRefreshTick struct {
+	target     visibleRefreshTarget
+	generation int
+}
+
+type visibleRefreshFetchedMsg struct {
+	target visibleRefreshTarget
+	data   tea.Msg
+	err    error
+}
+
+type prWatchTick struct{ url string }
 
 type prWatchFetchedMsg struct {
 	url  string
@@ -2018,26 +2103,255 @@ func (m *Model) shouldWatchCurrentPR() bool {
 }
 
 func (m *Model) maybeSchedulePRWatch() tea.Cmd {
-	if !m.shouldWatchCurrentPR() {
+	if m.shouldWatchCurrentPR() {
+		m.prWatchURL = m.prView.CurrentPRURL()
+	} else {
 		m.prWatchURL = ""
-		return nil
 	}
-
-	url := m.prView.CurrentPRURL()
-	if url == "" || m.prWatchURL == url {
-		return nil
-	}
-
-	m.prWatchURL = url
-	return tea.Tick(10*time.Second, func(t time.Time) tea.Msg {
-		return prWatchTick{url: url}
-	})
+	return m.reconcileVisibleRefreshes()
 }
 
 func fetchPRWatch(url string) tea.Cmd {
 	return func() tea.Msg {
 		pr, err := fetchPullRequestForPRWatch(url)
 		return prWatchFetchedMsg{url: url, data: pr, err: err}
+	}
+}
+
+func (m *Model) applyPRWatchFetched(msg prWatchFetchedMsg) tea.Cmd {
+	if msg.url != m.prView.CurrentPRURL() || !m.shouldWatchCurrentPR() {
+		return nil
+	}
+	if msg.err != nil {
+		log.Error("failed refreshing watched PR", "err", msg.err)
+		return nil
+	}
+
+	m.prView.SetEnrichedPR(msg.data)
+	if pr := m.notificationView.GetSubjectPR(); pr != nil && pr.Primary != nil && pr.Primary.Url == msg.url {
+		prData := msg.data.ToPullRequestData()
+		m.notificationView.SetSubjectPR(&prrow.Data{
+			Primary:    &prData,
+			Enriched:   msg.data,
+			IsEnriched: true,
+		}, m.notificationView.GetSubjectId())
+	}
+	if m.ctx != nil && m.ctx.View == config.PRsView && m.currSectionId >= 0 && m.currSectionId < len(m.prs) {
+		if prSection, ok := m.prs[m.currSectionId].(*prssection.Model); ok {
+			prSection.EnrichPR(msg.data)
+		}
+	}
+
+	return m.syncSidebar()
+}
+
+func (m *Model) visibleRefreshTargets() []visibleRefreshTarget {
+	var targets []visibleRefreshTarget
+
+	if m.shouldWatchCurrentPR() {
+		if url := m.prView.CurrentPRURL(); url != "" {
+			targets = append(targets, visibleRefreshTarget{
+				key:      "pr-preview:" + url,
+				kind:     visibleRefreshPRPreview,
+				url:      url,
+				interval: 10 * time.Second,
+			})
+		}
+	}
+
+	if m.ctx != nil && m.ctx.Config != nil && m.ctx.View == config.PRsView &&
+		m.ctx.Config.Defaults.RefetchIntervalMinutes > 0 {
+		currSection, ok := m.getCurrSection().(*prssection.Model)
+		if ok && currSection != nil && !currSection.IsSearchFocused() && !currSection.IsPromptConfirmationFocused() {
+			key := fmt.Sprintf("pr-section:%d:%s", currSection.GetId(), currSection.GetFilters())
+			targets = append(targets, visibleRefreshTarget{
+				key:       key,
+				kind:      visibleRefreshPRSection,
+				sectionId: currSection.GetId(),
+				interval:  time.Minute * time.Duration(m.ctx.Config.Defaults.RefetchIntervalMinutes),
+			})
+		}
+	}
+
+	if m.ctx != nil && m.ctx.Config != nil && m.ctx.View == config.PRsView {
+		currSection, ok := m.getCurrSection().(*prssection.Model)
+		if ok && currSection != nil {
+			if repoName, ok := currSection.RepoFromFilters(); ok {
+				interval := time.Duration(0)
+				if m.ctx.Config.Defaults.RefetchIntervalMinutes > 0 {
+					interval = time.Minute * time.Duration(m.ctx.Config.Defaults.RefetchIntervalMinutes)
+				}
+				if target := m.repoBranchesRefreshTarget(currSection.GetId(), repoName, interval); target.key != "" {
+					targets = append(targets, target)
+				}
+			}
+		}
+	}
+
+	return targets
+}
+
+func (m *Model) isVisibleRefreshTargetCurrent(target visibleRefreshTarget) bool {
+	for _, current := range m.visibleRefreshTargets() {
+		if current.key == target.key && current.kind == target.kind {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *Model) repoBranchesRefreshTarget(sectionId int, repoName string, interval time.Duration) visibleRefreshTarget {
+	if m.ctx == nil || m.ctx.Config == nil || repoName == "" {
+		return visibleRefreshTarget{}
+	}
+	if _, ok := common.GetRepoLocalPath(repoName, m.ctx.Config.RepoPaths); !ok {
+		return visibleRefreshTarget{}
+	}
+	return visibleRefreshTarget{
+		key:       "repo-branches:" + repoName,
+		kind:      visibleRefreshRepoBranches,
+		repoName:  repoName,
+		sectionId: sectionId,
+		interval:  interval,
+	}
+}
+
+func (m *Model) cachedRepoBranches(repoName string) *prssection.RepoBranches {
+	if m.repoBranches == nil {
+		return nil
+	}
+	state, ok := m.repoBranches[repoName]
+	if !ok || state.loading {
+		return nil
+	}
+	data := state.data
+	return &data
+}
+
+func (m *Model) applyRepoBranchesRefresh(branches prssection.RepoBranches, sectionId int) tea.Cmd {
+	if m.repoBranches == nil {
+		m.repoBranches = map[string]repoBranchesState{}
+	}
+	m.repoBranches[branches.RepoName] = repoBranchesState{data: branches}
+
+	if sectionId >= 0 && sectionId < len(m.prs) {
+		if prSection, ok := m.prs[sectionId].(*prssection.Model); ok {
+			if prSection.ApplyCreatePRBranches(branches) {
+				return nil
+			}
+		}
+	}
+
+	if currSection, ok := m.getCurrSection().(*prssection.Model); ok {
+		if currSection.ApplyCreatePRBranches(branches) {
+			return nil
+		}
+	}
+
+	return nil
+}
+
+func (m *Model) reconcileVisibleRefreshes() tea.Cmd {
+	targets := m.visibleRefreshTargets()
+	if m.visibleRefreshes == nil {
+		m.visibleRefreshes = map[string]int{}
+	}
+
+	desired := map[string]visibleRefreshTarget{}
+	for _, target := range targets {
+		desired[target.key] = target
+	}
+	for key := range m.visibleRefreshes {
+		if _, ok := desired[key]; !ok {
+			delete(m.visibleRefreshes, key)
+		}
+	}
+
+	cmds := make([]tea.Cmd, 0, len(targets))
+	for _, target := range targets {
+		if target.interval <= 0 {
+			continue
+		}
+		if _, exists := m.visibleRefreshes[target.key]; exists {
+			continue
+		}
+		m.visibleRefreshGen++
+		generation := m.visibleRefreshGen
+		m.visibleRefreshes[target.key] = generation
+		cmds = append(cmds, tea.Tick(target.interval, func(t time.Time) tea.Msg {
+			return visibleRefreshTick{target: target, generation: generation}
+		}))
+	}
+
+	if len(cmds) == 0 {
+		return nil
+	}
+	return tea.Batch(cmds...)
+}
+
+func (m *Model) fetchVisibleRefresh(target visibleRefreshTarget) tea.Cmd {
+	switch target.kind {
+	case visibleRefreshPRPreview:
+		return func() tea.Msg {
+			pr, err := fetchPullRequestForPRWatch(target.url)
+			return visibleRefreshFetchedMsg{target: target, data: prWatchFetchedMsg{url: target.url, data: pr, err: err}, err: err}
+		}
+	case visibleRefreshPRSection:
+		if target.sectionId < 0 || target.sectionId >= len(m.prs) {
+			return nil
+		}
+		prSection, ok := m.prs[target.sectionId].(*prssection.Model)
+		if !ok {
+			return nil
+		}
+		cmd := prSection.RefreshSectionRows()
+		if cmd == nil {
+			return nil
+		}
+		return func() tea.Msg {
+			msg := cmd()
+			if errMsg, ok := msg.(constants.ErrMsg); ok {
+				return visibleRefreshFetchedMsg{target: target, err: errMsg.Err}
+			}
+			return visibleRefreshFetchedMsg{target: target, data: msg}
+		}
+	case visibleRefreshRepoBranches:
+		repoPath, ok := common.GetRepoLocalPath(target.repoName, m.ctx.Config.RepoPaths)
+		if !ok {
+			return nil
+		}
+		repoPath = common.ExpandRepoPath(repoPath)
+		return func() tea.Msg {
+			repo, err := git.GetRepo(repoPath)
+			branches := prssection.RepoBranches{RepoName: target.repoName, Err: err}
+			if err == nil {
+				branches = repoBranchesFromGitRepo(target.repoName, repo)
+			}
+			return visibleRefreshFetchedMsg{target: target, data: branches, err: err}
+		}
+	default:
+		return nil
+	}
+}
+
+func repoBranchesFromGitRepo(repoName string, repo *git.Repo) prssection.RepoBranches {
+	branches := make([]fuzzyselect.Suggestion, 0, len(repo.Branches))
+	base := ""
+	for _, branch := range repo.Branches {
+		detail := ""
+		if branch.IsCheckedOut {
+			detail = "current"
+		}
+		branches = append(branches, fuzzyselect.Suggestion{Value: branch.Name, Detail: detail})
+		if base == "" && (branch.Name == "main" || branch.Name == "master") {
+			base = branch.Name
+		}
+	}
+	return prssection.RepoBranches{
+		RepoName: repoName,
+		Branches: branches,
+		Head:     repo.HeadBranchName,
+		Base:     base,
 	}
 }
 

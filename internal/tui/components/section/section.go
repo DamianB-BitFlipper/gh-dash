@@ -35,6 +35,9 @@ type BaseModel struct {
 	SearchBar                 search.Model
 	IsSearching               bool
 	SearchValue               string
+	LocalSearchBar            search.Model
+	IsLocalSearching          bool
+	LocalSearchValue          string
 	Table                     table.Model
 	Type                      string
 	SingularForm              string
@@ -113,6 +116,10 @@ func NewModel(
 			Prefix:       fmt.Sprintf("is:%s", options.Type),
 			InitialValue: filters,
 		}),
+		LocalSearchBar: search.NewModel(ctx, search.SearchOptions{
+			Prefix:      "local",
+			Placeholder: "filter loaded rows",
+		}),
 		SearchValue:               filters,
 		IsSearching:               false,
 		IsFilteredByCurrentRemote: isFilteredByCurrentRemote,
@@ -185,6 +192,8 @@ type Table interface {
 type Search interface {
 	SetIsSearching(val bool) tea.Cmd
 	IsSearchFocused() bool
+	SetIsLocalSearching(val bool) tea.Cmd
+	IsLocalSearchFocused() bool
 	ViewCompletions() string
 	ResetFilters()
 	GetFilters() string
@@ -303,6 +312,7 @@ func (m *BaseModel) UpdateProgramContext(ctx *context.ProgramContext) {
 	m.Table.UpdateProgramContext(ctx)
 	m.Table.SyncViewPortContent()
 	m.SearchBar.UpdateProgramContext(ctx)
+	m.LocalSearchBar.UpdateProgramContext(ctx)
 }
 
 type SectionRowsFetchedMsg struct {
@@ -346,6 +356,10 @@ func (m *BaseModel) IsSearchFocused() bool {
 	return m.IsSearching
 }
 
+func (m *BaseModel) IsLocalSearchFocused() bool {
+	return m.IsLocalSearching
+}
+
 func (m *BaseModel) GetIsLoading() bool {
 	return m.IsLoading
 }
@@ -366,8 +380,53 @@ func (m *BaseModel) SetIsSearching(val bool) tea.Cmd {
 	}
 }
 
+func (m *BaseModel) SetIsLocalSearching(val bool) tea.Cmd {
+	m.IsLocalSearching = val
+	if val {
+		cmds := make([]tea.Cmd, 0)
+		cmd := m.LocalSearchBar.Focus()
+		cmds = append(cmds, cmd)
+		m.LocalSearchBar.CursorEnd()
+		m.LocalSearchBar, cmd = m.LocalSearchBar.Update(nil)
+		cmds = append(cmds, cmd)
+		return tea.Sequence(cmds...)
+	}
+	m.LocalSearchBar.Blur()
+	return nil
+}
+
+func (m *BaseModel) LocalSearchQuery() string {
+	return strings.ToLower(strings.TrimSpace(m.LocalSearchValue))
+}
+
+func (m *BaseModel) HandleLocalSearchKey(msg tea.KeyMsg, rows func() []table.Row) (bool, tea.Cmd) {
+	if !m.IsLocalSearching {
+		return false, nil
+	}
+	switch msg.String() {
+	case "esc":
+		m.LocalSearchValue = ""
+		m.LocalSearchBar.SetValue("")
+		cmd := m.SetIsLocalSearching(false)
+		m.Table.ResetCurrItem()
+		m.Table.SetRows(rows())
+		return true, cmd
+	case "ctrl+c", "enter":
+		return true, m.SetIsLocalSearching(false)
+	}
+
+	var cmd tea.Cmd
+	m.LocalSearchBar, cmd = m.LocalSearchBar.Update(msg)
+	m.LocalSearchValue = m.LocalSearchBar.Value()
+	m.Table.ResetCurrItem()
+	m.Table.SetRows(rows())
+	return true, cmd
+}
+
 func (m *BaseModel) ResetFilters() {
 	m.SearchBar.SetValue(m.GetSearchValue())
+	m.LocalSearchBar.SetValue("")
+	m.LocalSearchValue = ""
 }
 
 func (m *BaseModel) ViewCompletions() string {
@@ -481,6 +540,9 @@ func (m *BaseModel) GetMainContent() string {
 
 func (m *BaseModel) View() string {
 	search := m.SearchBar.View(m.Ctx)
+	if m.IsLocalSearching || m.LocalSearchValue != "" {
+		search = m.LocalSearchBar.View(m.Ctx)
+	}
 	return m.Ctx.Styles.Section.ContainerStyle.
 		Width(m.Ctx.MainContentWidth).
 		Render(

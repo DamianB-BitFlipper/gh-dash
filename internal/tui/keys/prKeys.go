@@ -111,8 +111,8 @@ var PRKeys = PRKeyMap{
 		key.WithHelp("t", "toggle smart filtering"),
 	),
 	SortOrder: key.NewBinding(
-		key.WithKeys("s"),
-		key.WithHelp("s", "sort order"),
+		key.WithKeys("S"),
+		key.WithHelp("S", "sort order"),
 	),
 	ViewIssues: key.NewBinding(
 		key.WithHelp("", "switch to issues"),

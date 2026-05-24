@@ -186,8 +186,9 @@ func TestDefaultArrowKeybindings(t *testing.T) {
 	requireKeys(t, Keys.PrevView, "ctrl+shift+left")
 	requireKeys(t, PRKeys.PrevSidebarTab, "ctrl+left")
 	requireKeys(t, PRKeys.NextSidebarTab, "ctrl+right")
-	requireKeys(t, PRKeys.SortOrder, "s")
-	requireKeys(t, IssueKeys.SortOrder, "s")
+	requireKeys(t, PRKeys.SortOrder, "S")
+	requireKeys(t, IssueKeys.SortOrder, "S")
+	requireKeys(t, Keys.LocalSearch, "s")
 }
 
 func TestDefaultViewSwitchKeybindingsAreUnbound(t *testing.T) {

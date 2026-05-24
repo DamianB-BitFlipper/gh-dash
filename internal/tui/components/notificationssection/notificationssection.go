@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -212,6 +214,10 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if handled, cmd := m.HandleLocalSearchKey(msg, m.BuildRows); handled {
+			return m, cmd
+		}
+
 		if m.IsSearchFocused() {
 			switch msg.String() {
 			case "ctrl+c", "esc":
@@ -520,8 +526,9 @@ func (m *Model) sortNotifications() {
 
 func (m Model) BuildRows() []table.Row {
 	var rows []table.Row
-	for i := range m.Notifications {
-		notification := &m.Notifications[i]
+	notifications := m.filteredNotifications()
+	for i := range notifications {
+		notification := &notifications[i]
 		notificationModel := notificationrow.Notification{Ctx: m.Ctx, Data: notification}
 		rows = append(rows, notificationModel.ToTableRow())
 	}
@@ -534,23 +541,66 @@ func (m Model) BuildRows() []table.Row {
 }
 
 func (m *Model) NumRows() int {
-	return len(m.Notifications)
+	return len(m.filteredNotifications())
 }
 
 func (m *Model) GetCurrRow() data.RowData {
 	idx := m.Table.GetCurrItem()
-	if idx < 0 || idx >= len(m.Notifications) {
+	notifications := m.filteredNotifications()
+	if idx < 0 || idx >= len(notifications) {
 		return nil
 	}
-	return &m.Notifications[idx]
+	return &notifications[idx]
 }
 
 func (m *Model) GetCurrNotification() *notificationrow.Data {
 	idx := m.Table.GetCurrItem()
-	if idx < 0 || idx >= len(m.Notifications) {
+	notifications := m.filteredNotifications()
+	if idx < 0 || idx >= len(notifications) {
 		return nil
 	}
-	return &m.Notifications[idx]
+	return &notifications[idx]
+}
+
+func (m Model) filteredNotifications() []notificationrow.Data {
+	query := m.LocalSearchQuery()
+	if query == "" {
+		return m.Notifications
+	}
+	filtered := make([]notificationrow.Data, 0, len(m.Notifications))
+	for _, notification := range m.Notifications {
+		if notificationMatchesLocalSearch(notification, query) {
+			filtered = append(filtered, notification)
+		}
+	}
+	return filtered
+}
+
+func notificationMatchesLocalSearch(notification notificationrow.Data, query string) bool {
+	number := notification.GetNumber()
+	fields := []string{
+		notification.GetTitle(),
+		notification.GetRepoNameWithOwner(),
+		notification.GetSubjectType(),
+		notification.GetReason(),
+		notification.Actor,
+		notification.ActivityDescription,
+		notification.SubjectState,
+	}
+	if number > 0 {
+		fields = append(fields, strconv.Itoa(number), fmt.Sprintf("#%d", number))
+	}
+	if notification.IsUnread() {
+		fields = append(fields, "unread")
+	} else {
+		fields = append(fields, "read")
+	}
+	for _, field := range fields {
+		if strings.Contains(strings.ToLower(field), query) {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Model) FetchNextPageSectionRows() []tea.Cmd {
