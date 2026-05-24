@@ -33,17 +33,32 @@ func (m *Model) renderActivity() string {
 	}
 
 	for _, review := range m.pr.Data.Enriched.ReviewThreads.Nodes {
-		path := review.Path
-		line := review.Line
+		if len(review.Comments.Nodes) == 0 {
+			continue
+		}
+
+		thread := reviewThread{
+			Path:       review.Path,
+			Line:       review.Line,
+			IsOutdated: review.IsOutdated,
+			IsResolved: review.IsResolved,
+		}
 		for _, c := range review.Comments.Nodes {
-			comments = append(comments, comment{
+			thread.Comments = append(thread.Comments, comment{
 				Author:    c.Author.Login,
 				Body:      c.Body,
 				UpdatedAt: c.UpdatedAt,
-				Path:      &path,
-				Line:      &line,
 			})
 		}
+
+		renderedThread, err := m.renderReviewThread(thread, markdownRenderer)
+		if err != nil {
+			continue
+		}
+		activities = append(activities, RenderedActivity{
+			UpdatedAt:      thread.UpdatedAt(),
+			RenderedString: renderedThread,
+		})
 	}
 
 	for _, c := range m.pr.Data.Enriched.Comments.Nodes {
@@ -90,7 +105,7 @@ func (m *Model) renderActivity() string {
 			renderedActivities = append(renderedActivities, activity.RenderedString)
 		}
 		title := m.ctx.Styles.Common.MainTextStyle.MarginBottom(1).Underline(true).Render(
-			fmt.Sprintf("%s  %d comments", constants.CommentsIcon, len(activities)),
+			fmt.Sprintf("%s  %d activity items", constants.CommentsIcon, len(activities)),
 		)
 		body = lipgloss.JoinVertical(lipgloss.Left, renderedActivities...)
 		body = lipgloss.JoinVertical(lipgloss.Left, title, body)
@@ -109,6 +124,25 @@ type comment struct {
 	Body      string
 	Path      *string
 	Line      *int
+}
+
+type reviewThread struct {
+	Path       string
+	Line       int
+	IsOutdated bool
+	IsResolved bool
+	Comments   []comment
+}
+
+func (thread reviewThread) UpdatedAt() time.Time {
+	updatedAt := time.Time{}
+	for _, comment := range thread.Comments {
+		if comment.UpdatedAt.After(updatedAt) {
+			updatedAt = comment.UpdatedAt
+		}
+	}
+
+	return updatedAt
 }
 
 func (m *Model) renderComment(
@@ -151,6 +185,92 @@ func (m *Model) renderComment(
 		),
 		body,
 	), err
+}
+
+func (m *Model) renderReviewThread(
+	thread reviewThread,
+	markdownRenderer glamour.TermRenderer,
+) (string, error) {
+	width := m.getIndentedContentWidth()
+	if len(thread.Comments) == 0 {
+		return "", nil
+	}
+
+	var badges []string
+	badges = append(badges, fmt.Sprintf("%d comments", len(thread.Comments)))
+	if thread.IsResolved {
+		badges = append(badges, m.ctx.Styles.Common.SuccessGlyph+" resolved")
+	}
+	if thread.IsOutdated {
+		badges = append(badges, "outdated")
+	}
+
+	header := lipgloss.JoinVertical(
+		lipgloss.Left,
+		lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			m.ctx.Styles.Common.CommentGlyph,
+			" ",
+			m.ctx.Styles.Common.MainTextStyle.Render("Review thread"),
+			" ",
+			lipgloss.NewStyle().Foreground(m.ctx.Theme.FaintText).Render(joinMetadata(badges)),
+		),
+		lipgloss.NewStyle().Foreground(m.ctx.Theme.FaintText).Render(
+			fmt.Sprintf("%s#l%d", thread.Path, thread.Line),
+		),
+	)
+
+	var renderedComments []string
+	for i, comment := range thread.Comments {
+		renderedComment, err := m.renderThreadComment(comment, markdownRenderer)
+		if err != nil {
+			return "", err
+		}
+
+		if i > 0 {
+			renderedComments = append(renderedComments, lipgloss.NewStyle().
+				Foreground(m.ctx.Theme.FaintBorder).
+				Render("─"))
+		}
+		renderedComments = append(renderedComments, renderedComment)
+	}
+
+	return m.renderActivityCard(
+		width,
+		m.ctx.Theme.SecondaryBorder,
+		header,
+		lipgloss.JoinVertical(lipgloss.Left, renderedComments...),
+	), nil
+}
+
+func (m *Model) renderThreadComment(
+	comment comment,
+	markdownRenderer glamour.TermRenderer,
+) (string, error) {
+	header := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		m.ctx.Styles.Common.MainTextStyle.Render(comment.Author),
+		" ",
+		lipgloss.NewStyle().
+			Foreground(m.ctx.Theme.FaintText).
+			Render(utils.TimeElapsed(comment.UpdatedAt)),
+	)
+
+	body := lineCleanupRegex.ReplaceAllString(comment.Body, "")
+	body, err := markdownRenderer.Render(body)
+	return lipgloss.JoinVertical(lipgloss.Left, header, body), err
+}
+
+func joinMetadata(items []string) string {
+	metadata := ""
+	for i, item := range items {
+		if i > 0 {
+			metadata += " · "
+		}
+		metadata += item
+	}
+
+	return metadata
 }
 
 func (m *Model) renderActivityCard(
