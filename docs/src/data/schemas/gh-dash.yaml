@@ -236,9 +236,18 @@ properties:
         anyOf:
           - type: string
           - enum:
+              - builtin:pipediffshub
               - less
               - delta
-        default: less
+        default: builtin:pipediffshub
+      diffMode:
+        title: Diff Pager Mode
+        description: Specifies whether the diff pager should run in the terminal or in the background.
+        type: string
+        enum:
+          - background
+          - fullscreen
+        default: background
   showAuthorIcons:
     title: Show Author Role Icons
     description: |

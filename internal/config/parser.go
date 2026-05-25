@@ -496,6 +496,10 @@ func (parser ConfigParser) getDefaultConfig() Config {
 				},
 			},
 		},
+		Pager: Pager{
+			Diff:     "builtin:pipediffshub",
+			DiffMode: "background",
+		},
 		ConfirmQuit:              false,
 		ShowAuthorIcons:          true,
 		SmartFilteringAtLaunch:   true,

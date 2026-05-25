@@ -158,6 +158,7 @@ theme:
       faint: "#2B2B40"
 pager:
   diff: diffnav
+  diffMode: background
 confirmQuit: false
 showAuthorIcons: true
 smartFilteringAtLaunch: true

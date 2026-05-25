@@ -1,5 +1,8 @@
 debug.log
 dist/
+# Embedded assets used by internal/tui/diffviewer's go:embed.
+!/internal/tui/diffviewer/dist/
+!/internal/tui/diffviewer/dist/**
 gh-prs
 /gh-dash
 .direnv/

@@ -2,6 +2,7 @@ package common
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,13 +11,14 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dash/v4/internal/tui/diffviewer"
 )
 
 // DiffPR opens a diff view for a PR using the gh CLI.
 // The env parameter should be the result of Config.GetFullScreenDiffPagerEnv().
-func DiffPR(prNumber int, repoName string, diffPager string, runInBackground bool, env []string) tea.Cmd {
-	if runInBackground {
-		return openDiffInBackground(prNumber, repoName, diffPager)
+func DiffPR(prNumber int, repoName string, prURL string, diffPager string, runInBackground bool, env []string) tea.Cmd {
+	if runInBackground || diffviewer.IsBuiltInPager(diffPager) {
+		return openDiffInBackground(prNumber, repoName, prURL, diffPager)
 	}
 
 	c := exec.Command(
@@ -37,30 +39,22 @@ func DiffPR(prNumber int, repoName string, diffPager string, runInBackground boo
 	})
 }
 
-func openDiffInBackground(prNumber int, repoName string, diffPager string) tea.Cmd {
+func openDiffInBackground(prNumber int, repoName string, prURL string, diffPager string) tea.Cmd {
 	return func() tea.Msg {
 		if strings.TrimSpace(diffPager) == "" {
 			diffPager = "less"
 		}
 
-		ghCmd := exec.Command(
-			"gh",
-			"pr",
-			"diff",
-			fmt.Sprint(prNumber),
-			"-R",
-			repoName,
-		)
-
-		var ghErr bytes.Buffer
-		ghCmd.Stderr = &ghErr
-
-		diff, err := ghCmd.Output()
+		diff, err := fetchPRDiff(prNumber, repoName)
 		if err != nil {
-			if ghErr.Len() > 0 {
-				return constants.ErrMsg{Err: fmt.Errorf("%w: %s", err, strings.TrimSpace(ghErr.String()))}
-			}
 			return constants.ErrMsg{Err: err}
+		}
+
+		if diffviewer.IsBuiltInPager(diffPager) {
+			if err := diffviewer.Open(context.Background(), diffviewer.Options{Diff: diff, SourceURL: prURL}); err != nil {
+				return constants.ErrMsg{Err: err}
+			}
+			return nil
 		}
 
 		shell := os.Getenv("SHELL")
@@ -69,6 +63,11 @@ func openDiffInBackground(prNumber int, repoName string, diffPager string) tea.C
 		}
 		pagerCmd := exec.Command(shell, "-c", diffPager)
 		pagerCmd.Stdin = bytes.NewReader(diff)
+		pagerCmd.Env = append(os.Environ(),
+			fmt.Sprintf("GH_DASH_PR_NUMBER=%d", prNumber),
+			fmt.Sprintf("GH_DASH_PR_REPO=%s", repoName),
+			fmt.Sprintf("GH_DASH_PR_URL=%s", prURL),
+		)
 
 		if err := pagerCmd.Run(); err != nil {
 			return constants.ErrMsg{Err: err}
@@ -76,4 +75,28 @@ func openDiffInBackground(prNumber int, repoName string, diffPager string) tea.C
 
 		return nil
 	}
+}
+
+func fetchPRDiff(prNumber int, repoName string) ([]byte, error) {
+	ghCmd := exec.Command(
+		"gh",
+		"pr",
+		"diff",
+		fmt.Sprint(prNumber),
+		"-R",
+		repoName,
+	)
+
+	var ghErr bytes.Buffer
+	ghCmd.Stderr = &ghErr
+
+	diff, err := ghCmd.Output()
+	if err != nil {
+		if ghErr.Len() > 0 {
+			return nil, fmt.Errorf("%w: %s", err, strings.TrimSpace(ghErr.String()))
+		}
+		return nil, err
+	}
+
+	return diff, nil
 }

@@ -33,7 +33,7 @@ func TestDiffPR(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmd := DiffPR(tt.prNumber, tt.repoName, "less", false, nil)
+			cmd := DiffPR(tt.prNumber, tt.repoName, "https://github.com/owner/repo/pull/123", "less", false, nil)
 
 			if tt.wantNil && cmd != nil {
 				t.Errorf("DiffPR() returned non-nil, want nil")

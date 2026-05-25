@@ -8,7 +8,7 @@ import (
 
 func (cfg Config) GetFullScreenDiffPagerEnv() []string {
 	diff := cfg.Pager.Diff
-	if diff == "" {
+	if diff == "" || strings.TrimSpace(diff) == "builtin:pipediffshub" {
 		diff = "less"
 	}
 	if diff == "delta" {
