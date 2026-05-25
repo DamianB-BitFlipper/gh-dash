@@ -3,18 +3,23 @@ package prssection
 import (
 	"errors"
 	"fmt"
+	"os/exec"
 	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/dlvhdr/gh-dash/v4/internal/data"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/common"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/fuzzyselect"
+	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prrow"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
 )
 
-type createPRCreatedMsg struct{}
+type createPRCreatedMsg struct {
+	PR *prrow.Data
+}
 
 type createPRBranchesFetchedMsg struct {
 	RepoName  string
@@ -38,7 +43,29 @@ type RefreshRepoBranchesMsg struct {
 	RepoName  string
 }
 
-var runCreatePRRepoCommand = common.RunRepoCommand
+var (
+	runCreatePRRepoCommand = runCreatePRCommand
+	fetchCreatedPR         = data.FetchPullRequest
+)
+
+func runCreatePRCommand(repoPath string, args ...string) (string, error) {
+	if len(args) == 0 {
+		return "", nil
+	}
+	repoPath = common.ExpandRepoPath(repoPath)
+
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Dir = repoPath
+	output, err := cmd.CombinedOutput()
+	out := strings.TrimSpace(string(output))
+	if err == nil {
+		return out, nil
+	}
+	if out == "" {
+		out = err.Error()
+	}
+	return out, fmt.Errorf("%s failed in %s: %s", strings.Join(args, " "), repoPath, out)
+}
 
 func (m *Model) validateCanCreatePR() error {
 	repoName, ok := m.repoFromFilters()
@@ -123,13 +150,40 @@ func (m *Model) createPR(title string, body string, head string, base string) (t
 		if base != "" {
 			args = append(args, "--base", base)
 		}
-		err := runCreatePRRepoCommand(repoPath, args...)
+		output, err := runCreatePRRepoCommand(repoPath, args...)
+		var createdPR *prrow.Data
+		if err == nil {
+			createdPR = fetchCreatedPRData(output)
+		}
 		return constants.TaskFinishedMsg{
 			SectionId:   m.Id,
 			SectionType: SectionType,
 			TaskId:      taskId,
 			Err:         err,
-			Msg:         createPRCreatedMsg{},
+			Msg:         createPRCreatedMsg{PR: createdPR},
 		}
 	}), nil
+}
+
+func fetchCreatedPRData(output string) *prrow.Data {
+	url := createdPRURL(output)
+	if url == "" {
+		return nil
+	}
+	pr, err := fetchCreatedPR(url)
+	if err != nil {
+		return nil
+	}
+	primary := pr.ToPullRequestData()
+	return &prrow.Data{Primary: &primary, Enriched: pr, IsEnriched: true}
+}
+
+func createdPRURL(output string) string {
+	for _, field := range strings.Fields(output) {
+		field = strings.Trim(field, "\t\n\r .,;()[]{}<>")
+		if strings.HasPrefix(field, "https://github.com/") && strings.Contains(field, "/pull/") {
+			return field
+		}
+	}
+	return ""
 }

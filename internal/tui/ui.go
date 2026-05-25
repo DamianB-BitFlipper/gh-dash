@@ -66,6 +66,7 @@ type Model struct {
 	prPreviewStates   map[string]prPreviewState
 	copySelection     copySelectionModel
 	messagePopup      *messagePopup
+	mergePRPopup      *mergePRPopup
 	visibleRefreshes  map[string]int
 	visibleRefreshGen int
 	repoBranches      map[string]repoBranchesState
@@ -206,6 +207,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.messagePopup = nil
 			}
 			return m, nil
+		}
+		if m.mergePRPopup != nil {
+			return m, m.updateMergePRPopup(msg)
 		}
 
 		if currSection != nil && (currSection.IsSearchFocused() || currSection.IsLocalSearchFocused() ||
@@ -523,10 +527,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, cmd
 
 			case key.Matches(msg, keys.PRKeys.Merge):
-				if currRowData != nil {
-					cmd = m.promptConfirmation(currSection, "merge")
+				if currRowData != nil && currSection != nil {
+					sid := tasks.SectionIdentifier{Id: currSection.GetId(), Type: currSection.GetType()}
+					m.openMergePRPopup(sid, currRowData)
 				}
-				return m, cmd
+				return m, nil
 
 			case key.Matches(msg, keys.PRKeys.Update):
 				if currRowData != nil {
@@ -655,8 +660,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							return m, cmd
 
 						case prview.PRActionMerge:
-							cmd = m.promptConfirmationForNotificationPR("merge")
-							return m, cmd
+							if pr := m.notificationView.GetSubjectPR(); pr != nil {
+								sid := tasks.SectionIdentifier{Id: m.currSectionId, Type: notificationssection.SectionType}
+								m.openMergePRPopup(sid, pr)
+							}
+							return m, nil
 
 						case prview.PRActionUpdate:
 							cmd = m.promptConfirmationForNotificationPR("update")
@@ -1211,6 +1219,11 @@ func (m Model) View() tea.View {
 	}
 	if m.messagePopup != nil {
 		popup := m.renderMessagePopup()
+		layers = append(layers, lipgloss.NewLayer(popup).
+			X(max(0, (m.ctx.ScreenWidth-lipgloss.Width(popup))/2)).
+			Y(max(0, (m.ctx.ScreenHeight-lipgloss.Height(popup))/2)))
+	}
+	if popup := m.renderMergePRPopup(); popup != "" {
 		layers = append(layers, lipgloss.NewLayer(popup).
 			X(max(0, (m.ctx.ScreenWidth-lipgloss.Width(popup))/2)).
 			Y(max(0, (m.ctx.ScreenHeight-lipgloss.Height(popup))/2)))

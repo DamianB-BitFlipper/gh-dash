@@ -307,8 +307,18 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 		m.UpdateTotalItemsCount(m.TotalCount)
 
 	case createPRCreatedMsg:
-		m.ResetRows()
-		return m, tea.Batch(m.FetchNextPageSectionRows()...)
+		if msg.PR == nil {
+			m.ResetRows()
+			return m, tea.Batch(m.FetchNextPageSectionRows()...)
+		}
+		m.upsertCreatedPR(*msg.PR)
+		m.sortPRs()
+		m.TotalCount = max(m.TotalCount, len(m.Prs))
+		m.SetIsLoading(false)
+		m.Table.SetRows(m.BuildRows())
+		m.Table.UpdateLastUpdated(time.Now())
+		m.UpdateTotalItemsCount(m.TotalCount)
+		return m, nil
 
 	case createPRBranchesFetchedMsg:
 		if msg.RequestID != m.createPRBranchRequestID {
@@ -369,6 +379,28 @@ func (m *Model) mergeRefreshedPRs(refreshed []prrow.Data) {
 	}
 
 	m.Prs = refreshed
+}
+
+func (m *Model) upsertCreatedPR(created prrow.Data) {
+	for i, pr := range m.Prs {
+		if samePR(pr, created) {
+			m.Prs[i] = created
+			return
+		}
+	}
+	m.Prs = append([]prrow.Data{created}, m.Prs...)
+}
+
+func samePR(a, b prrow.Data) bool {
+	if a.Primary == nil || b.Primary == nil {
+		return false
+	}
+	if a.Primary.Url != "" && b.Primary.Url != "" {
+		return a.Primary.Url == b.Primary.Url
+	}
+	return a.Primary.Number == b.Primary.Number &&
+		a.Primary.Repository.NameWithOwner != "" &&
+		a.Primary.Repository.NameWithOwner == b.Primary.Repository.NameWithOwner
 }
 
 func (m *Model) sortPRs() {

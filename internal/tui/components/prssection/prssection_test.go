@@ -286,10 +286,10 @@ func TestCreatePRRunsGhCreateWithoutWeb(t *testing.T) {
 
 	var gotPath string
 	var gotArgs []string
-	runCreatePRRepoCommand = func(repoPath string, args ...string) error {
+	runCreatePRRepoCommand = func(repoPath string, args ...string) (string, error) {
 		gotPath = repoPath
 		gotArgs = args
-		return nil
+		return "", nil
 	}
 
 	m := newTestModel("")
@@ -306,6 +306,73 @@ func TestCreatePRRunsGhCreateWithoutWeb(t *testing.T) {
 	require.Equal(t, "/tmp/name", gotPath)
 	require.Equal(t, []string{"gh", "pr", "create", "--title", "My PR", "--body", "body", "--head", "feature", "--base", "main"}, gotArgs)
 	require.NotContains(t, gotArgs, "--web")
+}
+
+func TestCreatePRFetchesCreatedPRFromOutputURL(t *testing.T) {
+	origRun := runCreatePRRepoCommand
+	origFetch := fetchCreatedPR
+	defer func() {
+		runCreatePRRepoCommand = origRun
+		fetchCreatedPR = origFetch
+	}()
+
+	runCreatePRRepoCommand = func(repoPath string, args ...string) (string, error) {
+		return "https://github.com/owner/name/pull/123\n", nil
+	}
+	fetchCreatedPR = func(url string) (data.EnrichedPullRequestData, error) {
+		require.Equal(t, "https://github.com/owner/name/pull/123", url)
+		pr := data.EnrichedPullRequestData{Number: 123, Title: "My PR", Url: url, State: "OPEN"}
+		pr.Repository.NameWithOwner = "owner/name"
+		return pr, nil
+	}
+
+	m := newTestModel("")
+	m.SearchValue = "repo:owner/name is:open"
+	m.Ctx.Config = &config.Config{RepoPaths: map[string]string{"owner/name": "/tmp/name"}}
+	m.Ctx.StartTask = func(task context.Task) tea.Cmd { return nil }
+
+	cmd, err := m.createPR("My PR", "body", "feature", "main")
+	require.NoError(t, err)
+	require.NotNil(t, cmd)
+
+	msg := cmd().(constants.TaskFinishedMsg)
+	created := msg.Msg.(createPRCreatedMsg)
+	require.NotNil(t, created.PR)
+	require.Equal(t, 123, created.PR.Primary.Number)
+	require.True(t, created.PR.IsEnriched)
+}
+
+func TestCreatedPRURLParsesGitHubPullURL(t *testing.T) {
+	require.Equal(t,
+		"https://github.com/owner/repo/pull/123",
+		createdPRURL("Creating pull request...\nhttps://github.com/owner/repo/pull/123\n"),
+	)
+	require.Empty(t, createdPRURL("no url"))
+}
+
+func TestUpsertCreatedPRInsertsPR(t *testing.T) {
+	m := newTestModel("")
+	existing := data.PullRequestData{Number: 1, Title: "old", Url: "https://github.com/owner/name/pull/1", UpdatedAt: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)}
+	created := data.PullRequestData{Number: 2, Title: "new", Url: "https://github.com/owner/name/pull/2", UpdatedAt: time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC)}
+	m.Prs = []prrow.Data{{Primary: &existing}}
+
+	m.upsertCreatedPR(prrow.Data{Primary: &created})
+	m.sortPRs()
+
+	require.Len(t, m.Prs, 2)
+	require.Equal(t, 2, m.Prs[0].Primary.Number)
+}
+
+func TestUpsertCreatedPRDedupesExistingPR(t *testing.T) {
+	m := newTestModel("")
+	old := data.PullRequestData{Number: 2, Title: "old", Url: "https://github.com/owner/name/pull/2"}
+	created := data.PullRequestData{Number: 2, Title: "new", Url: "https://github.com/owner/name/pull/2"}
+	m.Prs = []prrow.Data{{Primary: &old}}
+
+	m.upsertCreatedPR(prrow.Data{Primary: &created})
+
+	require.Len(t, m.Prs, 1)
+	require.Equal(t, "new", m.Prs[0].Primary.Title)
 }
 
 func TestConfirmation_AcceptWithEmptyInput(t *testing.T) {

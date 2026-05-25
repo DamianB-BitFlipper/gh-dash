@@ -109,6 +109,37 @@ func TestTogglePRDraft_TaskConfiguration(t *testing.T) {
 	}
 }
 
+func TestMergePRTaskConfiguration(t *testing.T) {
+	section := SectionIdentifier{Id: 2, Type: "pr"}
+	pr := mockIssue{number: 42, repoName: "owner/repo"}
+
+	task := buildMergePRTask(section, pr, MergePROptions{
+		Method:       MergeMethodSquash,
+		Auto:         true,
+		DeleteBranch: true,
+	})
+	msg := task.Msg(&exec.Cmd{}, nil).(UpdatePRMsg)
+
+	require.Equal(t, "merge_42", task.Id)
+	require.Equal(t, []string{
+		"pr", "merge", "42", "-R", "owner/repo", "--squash", "--auto", "--delete-branch",
+	}, task.Args)
+	require.Equal(t, section, task.Section)
+	require.Equal(t, "Merging PR #42", task.StartText)
+	require.Equal(t, "PR #42 has been merged", task.FinishedText)
+	require.Equal(t, 42, msg.PrNumber)
+	require.NotNil(t, msg.IsMerged)
+	require.True(t, *msg.IsMerged)
+}
+
+func TestMergePRTaskDefaultsToMergeMethod(t *testing.T) {
+	pr := mockIssue{number: 42, repoName: "owner/repo"}
+
+	task := buildMergePRTask(SectionIdentifier{}, pr, MergePROptions{})
+
+	require.Equal(t, []string{"pr", "merge", "42", "-R", "owner/repo", "--merge"}, task.Args)
+}
+
 func TestApproveWorkflows_ReturnsNonNilCommand(t *testing.T) {
 	tests := []struct {
 		name     string

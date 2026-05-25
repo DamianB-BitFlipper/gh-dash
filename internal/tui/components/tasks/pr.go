@@ -49,6 +49,20 @@ type DraftablePRData interface {
 	GetIsDraft() bool
 }
 
+type MergeMethod string
+
+const (
+	MergeMethodMerge  MergeMethod = "merge"
+	MergeMethodSquash MergeMethod = "squash"
+	MergeMethodRebase MergeMethod = "rebase"
+)
+
+type MergePROptions struct {
+	Method       MergeMethod
+	Auto         bool
+	DeleteBranch bool
+}
+
 type UpdateBranchMsg struct {
 	Name      string
 	IsCreated *bool
@@ -227,40 +241,47 @@ func buildTogglePRDraftTask(section SectionIdentifier, pr DraftablePRData) GitHu
 }
 
 func MergePR(ctx *context.ProgramContext, section SectionIdentifier, pr data.RowData) tea.Cmd {
-	prNumber := pr.GetNumber()
-	c := exec.Command(
-		"gh",
-		"pr",
-		"merge",
-		fmt.Sprint(prNumber),
-		"-R",
-		pr.GetRepoNameWithOwner(),
-	)
+	return MergePRWithOptions(ctx, section, pr, MergePROptions{Method: MergeMethodMerge})
+}
 
-	taskId := fmt.Sprintf("merge_%d", prNumber)
-	task := context.Task{
-		Id:           taskId,
+func MergePRWithOptions(
+	ctx *context.ProgramContext,
+	section SectionIdentifier,
+	pr data.RowData,
+	options MergePROptions,
+) tea.Cmd {
+	return fireTask(ctx, buildMergePRTask(section, pr, options))
+}
+
+func buildMergePRTask(section SectionIdentifier, pr data.RowData, options MergePROptions) GitHubTask {
+	prNumber := pr.GetNumber()
+	method := options.Method
+	if method == "" {
+		method = MergeMethodMerge
+	}
+
+	args := []string{"pr", "merge", fmt.Sprint(prNumber), "-R", pr.GetRepoNameWithOwner(), "--" + string(method)}
+	if options.Auto {
+		args = append(args, "--auto")
+	}
+	if options.DeleteBranch {
+		args = append(args, "--delete-branch")
+	}
+
+	return GitHubTask{
+		Id:           fmt.Sprintf("merge_%d", prNumber),
+		Args:         args,
+		Section:      section,
 		StartText:    fmt.Sprintf("Merging PR #%d", prNumber),
 		FinishedText: fmt.Sprintf("PR #%d has been merged", prNumber),
-		State:        context.TaskStart,
-		Error:        nil,
-	}
-	startCmd := ctx.StartTask(task)
-
-	return tea.Batch(startCmd, tea.ExecProcess(c, func(err error) tea.Msg {
-		isMerged := err == nil && c.ProcessState.ExitCode() == 0
-
-		return constants.TaskFinishedMsg{
-			SectionId:   section.Id,
-			SectionType: section.Type,
-			TaskId:      taskId,
-			Err:         err,
-			Msg: UpdatePRMsg{
+		Msg: func(c *exec.Cmd, err error) tea.Msg {
+			isMerged := err == nil
+			return UpdatePRMsg{
 				PrNumber: prNumber,
 				IsMerged: &isMerged,
-			},
-		}
-	}))
+			}
+		},
+	}
 }
 
 func CreatePR(
