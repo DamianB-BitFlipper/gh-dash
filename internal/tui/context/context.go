@@ -44,6 +44,7 @@ type ProgramContext struct {
 	ConfigFlag           string
 	Version              string
 	View                 config.ViewType
+	ActivePane           string
 	Error                error
 	StartTask            func(task Task) tea.Cmd
 	Theme                theme.Theme

@@ -28,29 +28,31 @@ func SetNotificationSubject(subjectType NotificationSubjectType) {
 }
 
 type KeyMap struct {
-	viewType     config.ViewType
-	Up           key.Binding
-	Down         key.Binding
-	FirstLine    key.Binding
-	LastLine     key.Binding
-	CyclePreview key.Binding
-	OpenGithub   key.Binding
-	Refresh      key.Binding
-	Redraw       key.Binding
-	PageDown     key.Binding
-	PageUp       key.Binding
-	PreviewTop   key.Binding
+	viewType      config.ViewType
+	Up            key.Binding
+	Down          key.Binding
+	FirstLine     key.Binding
+	LastLine      key.Binding
+	CyclePreview  key.Binding
+	OpenGithub    key.Binding
+	Refresh       key.Binding
+	Redraw        key.Binding
+	PageDown      key.Binding
+	PageUp        key.Binding
+	PreviewTop    key.Binding
 	PreviewBottom key.Binding
-	NextView     key.Binding
-	PrevView     key.Binding
-	NextSection  key.Binding
-	PrevSection  key.Binding
-	Search       key.Binding
-	LocalSearch  key.Binding
-	CopyUrl      key.Binding
-	CopyNumber   key.Binding
-	Help         key.Binding
-	Quit         key.Binding
+	FocusMain     key.Binding
+	FocusPreview  key.Binding
+	NextView      key.Binding
+	PrevView      key.Binding
+	NextSection   key.Binding
+	PrevSection   key.Binding
+	Search        key.Binding
+	LocalSearch   key.Binding
+	CopyUrl       key.Binding
+	CopyNumber    key.Binding
+	Help          key.Binding
+	Quit          key.Binding
 }
 
 func CreateKeyMapForView(viewType config.ViewType) help.KeyMap {
@@ -158,6 +160,8 @@ func (k KeyMap) NavigationKeys() []key.Binding {
 		k.PageUp,
 		k.PreviewTop,
 		k.PreviewBottom,
+		k.FocusMain,
+		k.FocusPreview,
 		k.NextView,
 		k.PrevView,
 	}
@@ -224,21 +228,29 @@ var Keys = &KeyMap{
 		key.WithKeys("ctrl+g"),
 		key.WithHelp("Ctrl+g", "preview bottom"),
 	),
+	FocusMain: key.NewBinding(
+		key.WithKeys("ctrl+left"),
+		key.WithHelp("Ctrl+←", "focus main"),
+	),
+	FocusPreview: key.NewBinding(
+		key.WithKeys("ctrl+right"),
+		key.WithHelp("Ctrl+→", "focus preview"),
+	),
 	NextView: key.NewBinding(
-		key.WithKeys("ctrl+shift+right"),
-		key.WithHelp("Ctrl+Shift+→", "next view"),
+		key.WithKeys("}"),
+		key.WithHelp("}", "next view"),
 	),
 	PrevView: key.NewBinding(
-		key.WithKeys("ctrl+shift+left"),
-		key.WithHelp("Ctrl+Shift+←", "previous view"),
+		key.WithKeys("{"),
+		key.WithHelp("{", "previous view"),
 	),
 	NextSection: key.NewBinding(
-		key.WithKeys("right"),
-		key.WithHelp("→", "next section"),
+		key.WithKeys("]"),
+		key.WithHelp("]", "next section"),
 	),
 	PrevSection: key.NewBinding(
-		key.WithKeys("left"),
-		key.WithHelp("←", "previous section"),
+		key.WithKeys("["),
+		key.WithHelp("[", "previous section"),
 	),
 	Search: key.NewBinding(
 		key.WithKeys("/"),
@@ -353,6 +365,10 @@ func rebindUniversal(universal []config.Keybinding) error {
 			key = &Keys.PreviewTop
 		case "previewBottom":
 			key = &Keys.PreviewBottom
+		case "focusMain":
+			key = &Keys.FocusMain
+		case "focusPreview":
+			key = &Keys.FocusPreview
 		case "nextView":
 			key = &Keys.NextView
 		case "prevView":

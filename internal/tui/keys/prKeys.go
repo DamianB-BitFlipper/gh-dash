@@ -38,12 +38,12 @@ type PRKeyMap struct {
 
 var PRKeys = PRKeyMap{
 	PrevSidebarTab: key.NewBinding(
-		key.WithKeys("ctrl+left"),
-		key.WithHelp("Ctrl+←", "previous sidebar tab"),
+		key.WithKeys("left"),
+		key.WithHelp("←", "previous sidebar tab"),
 	),
 	NextSidebarTab: key.NewBinding(
-		key.WithKeys("ctrl+right"),
-		key.WithHelp("Ctrl+→", "next sidebar tab"),
+		key.WithKeys("right"),
+		key.WithHelp("→", "next sidebar tab"),
 	),
 	Approve: key.NewBinding(
 		key.WithKeys("v"),
@@ -109,12 +109,12 @@ var PRKeys = PRKeyMap{
 		key.WithHelp("V", "approve all workflows"),
 	),
 	PrevReviewThread: key.NewBinding(
-		key.WithKeys("["),
-		key.WithHelp("[", "previous review thread"),
+		key.WithKeys("ctrl+up"),
+		key.WithHelp("Ctrl+↑", "previous review thread"),
 	),
 	NextReviewThread: key.NewBinding(
-		key.WithKeys("]"),
-		key.WithHelp("]", "next review thread"),
+		key.WithKeys("ctrl+down"),
+		key.WithHelp("Ctrl+↓", "next review thread"),
 	),
 	ToggleReviewThread: key.NewBinding(
 		key.WithKeys("z"),

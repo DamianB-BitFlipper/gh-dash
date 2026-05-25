@@ -46,6 +46,13 @@ import (
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/theme"
 )
 
+type activePane int
+
+const (
+	mainPane activePane = iota
+	previewPane
+)
+
 type Model struct {
 	keys              *keys.KeyMap
 	sidebar           sidebar.Model
@@ -72,6 +79,7 @@ type Model struct {
 	repoBranches      map[string]repoBranchesState
 	prWatchURL        string // kept for older tests; visibleRefreshes owns scheduling
 	positionOverride  string // "" means no override, "right" or "bottom"
+	activePane        activePane
 }
 
 type repoBranchesState struct {
@@ -111,7 +119,8 @@ func NewModel(location config.Location) Model {
 			m.tasks[task.Id] = task
 			return m.taskSpinner.Tick
 		},
-		Theme: *theme.DefaultTheme,
+		Theme:      *theme.DefaultTheme,
+		ActivePane: "main",
 	}
 
 	m.footer = footer.NewModel(m.ctx)
@@ -265,6 +274,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch {
+		case key.Matches(msg, m.keys.FocusMain):
+			m.setActivePane(mainPane)
+			return m, nil
+
+		case key.Matches(msg, m.keys.FocusPreview):
+			if m.sidebar.IsOpen {
+				m.setActivePane(previewPane)
+			} else {
+				m.setActivePane(mainPane)
+			}
+			return m, nil
+
+		case m.isPreviewFocused() && m.isPreviewTabKey(msg):
+			m.prView, prViewCmd = m.prView.Update(msg)
+			m.syncSidebar()
+			cmds = append(cmds, prViewCmd, m.maybeSchedulePRWatch())
+			return m, tea.Batch(cmds...)
+
+		case m.isPreviewFocused() && m.isPreviewNavigationKey(msg):
+			m.sidebar, sidebarCmd = m.sidebar.Update(msg)
+			return m, sidebarCmd
+
 		case m.isUserDefinedKeybinding(msg):
 			cmd = m.executeKeybinding(msg.String())
 			return m, cmd
@@ -445,8 +476,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				blinkCmd := prSection.SetIsPromptConfirmationShown(true)
 				return m, tea.Batch(cmd, blinkCmd)
 
-			case key.Matches(msg, keys.PRKeys.PrevSidebarTab),
-				key.Matches(msg, keys.PRKeys.NextSidebarTab):
+			case m.isPreviewFocused() && (key.Matches(msg, keys.PRKeys.PrevSidebarTab) ||
+				key.Matches(msg, keys.PRKeys.NextSidebarTab)):
 				var scmds []tea.Cmd
 				var scmd tea.Cmd
 				m.prView, scmd = m.prView.Update(msg)
@@ -714,6 +745,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Handle 's' key to switch views
 				if key.Matches(msg, keys.PRKeys.ViewIssues) {
 					cmds = append(cmds, m.switchSelectedView())
+				}
+
+				if m.isPreviewTabKey(msg) {
+					return m, nil
 				}
 
 				// No action matched - update prView for navigation (tab switching, scrolling)
@@ -1273,6 +1308,32 @@ func completionLayerY(previewTop int, previewView string, inputLineFromBottom in
 	)
 }
 
+func (m *Model) isPreviewFocused() bool {
+	return m.activePane == previewPane && m.sidebar.IsOpen
+}
+
+func (m *Model) setActivePane(pane activePane) {
+	m.activePane = pane
+	if m.ctx == nil {
+		return
+	}
+	if pane == previewPane && m.sidebar.IsOpen {
+		m.ctx.ActivePane = "preview"
+		return
+	}
+	m.activePane = mainPane
+	m.ctx.ActivePane = "main"
+}
+
+func (m *Model) isPreviewNavigationKey(msg tea.KeyMsg) bool {
+	return key.Matches(msg, m.keys.Up) || key.Matches(msg, m.keys.Down) ||
+		key.Matches(msg, m.keys.FirstLine) || key.Matches(msg, m.keys.LastLine)
+}
+
+func (m *Model) isPreviewTabKey(msg tea.KeyMsg) bool {
+	return key.Matches(msg, keys.PRKeys.PrevSidebarTab) || key.Matches(msg, keys.PRKeys.NextSidebarTab)
+}
+
 type initMsg struct {
 	Config  config.Config
 	RepoUrl string
@@ -1499,6 +1560,7 @@ func (m *Model) syncMainContentDimensions() {
 	m.ctx.PreviewPosition = m.resolvePreviewPosition()
 
 	if !m.sidebar.IsOpen {
+		m.setActivePane(mainPane)
 		m.ctx.MainContentWidth = m.ctx.ScreenWidth
 		m.ctx.MainContentHeight = m.getBaseContentHeight()
 		m.ctx.DynamicPreviewWidth = 0

@@ -247,6 +247,7 @@ func TestNotificationView_SwitchViewWithSKey(t *testing.T) {
 	markdown.InitializeMarkdownStyle(true)
 
 	sidebarModel := sidebar.NewModel()
+	sidebarModel.IsOpen = true
 	sidebarModel.UpdateProgramContext(ctx)
 
 	m := Model{
@@ -411,6 +412,7 @@ func TestNotificationView_SwitchViewWithSKey_WhileViewingPR(t *testing.T) {
 	ctx.Styles = context.InitStyles(ctx.Theme)
 
 	sidebarModel := sidebar.NewModel()
+	sidebarModel.IsOpen = true
 	sidebarModel.UpdateProgramContext(ctx)
 
 	m := Model{
@@ -457,6 +459,7 @@ func TestNotificationView_SwitchViewWithSKey_WhileViewingIssue(t *testing.T) {
 	ctx.Styles = context.InitStyles(ctx.Theme)
 
 	sidebarModel := sidebar.NewModel()
+	sidebarModel.IsOpen = true
 	sidebarModel.UpdateProgramContext(ctx)
 
 	m := Model{
@@ -489,6 +492,9 @@ func TestNotificationView_SwitchViewWithSKey_WhileViewingIssue(t *testing.T) {
 }
 
 func TestNotificationView_PRViewTabNavigation(t *testing.T) {
+	keys.PRKeys.PrevSidebarTab.SetKeys("left")
+	keys.PRKeys.NextSidebarTab.SetKeys("right")
+
 	// This test verifies that tab navigation works in notification view when viewing a PR.
 	// Previously, the code only returned when prCmd != nil, but tab navigation
 	// (carousel.MoveLeft/MoveRight) doesn't return a command - it just updates state.
@@ -507,6 +513,7 @@ func TestNotificationView_PRViewTabNavigation(t *testing.T) {
 	ctx.Styles = context.InitStyles(ctx.Theme)
 
 	sidebarModel := sidebar.NewModel()
+	sidebarModel.IsOpen = true
 	sidebarModel.UpdateProgramContext(ctx)
 
 	m := Model{
@@ -516,7 +523,9 @@ func TestNotificationView_PRViewTabNavigation(t *testing.T) {
 		sidebar:          sidebarModel,
 		issueSidebar:     issueview.NewModel(ctx),
 		notificationView: notificationview.NewModel(ctx),
+		activePane:       previewPane,
 	}
+	m.ctx.ActivePane = "preview"
 
 	// Set up a PR notification subject so GetSubjectPR() returns non-nil
 	m.notificationView.SetSubjectPR(&prrow.Data{}, "test-notification-id")
@@ -525,7 +534,7 @@ func TestNotificationView_PRViewTabNavigation(t *testing.T) {
 	initialTab := m.prView.SelectedTab()
 
 	// Send "next tab" key message
-	msg := tea.KeyPressMsg{Text: "ctrl+right"}
+	msg := tea.KeyPressMsg{Code: tea.KeyRight}
 	newModel, _ := m.Update(msg)
 	m = newModel.(Model)
 
@@ -535,7 +544,7 @@ func TestNotificationView_PRViewTabNavigation(t *testing.T) {
 
 	// Now test going back
 	currentTab := m.prView.SelectedTab()
-	msg = tea.KeyPressMsg{Text: "ctrl+left"}
+	msg = tea.KeyPressMsg{Code: tea.KeyLeft}
 	newModel, _ = m.Update(msg)
 	m = newModel.(Model)
 
@@ -1376,6 +1385,81 @@ func TestPRInputFocusedPageKeysScrollSidebar(t *testing.T) {
 	newModel, _ = m.Update(tea.KeyPressMsg{Text: "ctrl+g"})
 	m = newModel.(Model)
 	require.Greater(t, m.sidebar.YOffset(), 0)
+}
+
+func TestPreviewFocusRoutesNavigationToSidebar(t *testing.T) {
+	cfg, err := config.ParseConfig(config.Location{
+		ConfigFlag:       "../config/testdata/test-config.yml",
+		SkipGlobalConfig: true,
+	})
+	require.NoError(t, err)
+
+	ctx := &context.ProgramContext{
+		Config:            &cfg,
+		View:              config.PRsView,
+		ScreenWidth:       120,
+		ScreenHeight:      40,
+		MainContentHeight: 10,
+		StartTask:         func(task context.Task) tea.Cmd { return nil },
+	}
+	ctx.Theme = theme.ParseTheme(ctx.Config)
+	ctx.Styles = context.InitStyles(ctx.Theme)
+	markdown.InitializeMarkdownStyle(true)
+
+	prSection := prssection.NewModel(0, ctx, config.PrsSectionConfig{}, time.Now(), time.Now())
+	prSection.Prs = []prrow.Data{
+		{Primary: testPullRequestData(1, "https://github.com/owner/repo/pull/1")},
+		{Primary: testPullRequestData(2, "https://github.com/owner/repo/pull/2")},
+	}
+	prSection.Table.SetRows(prSection.BuildRows())
+
+	sidebarModel := sidebar.NewModel()
+	sidebarModel.IsOpen = true
+	sidebarModel.UpdateProgramContext(ctx)
+	sidebarModel.SetContent(strings.Repeat("line\n", 100))
+
+	prViewModel := prview.NewModel(ctx)
+	prViewModel.UpdateProgramContext(ctx)
+
+	m := Model{
+		ctx:              ctx,
+		keys:             keys.Keys,
+		prs:              []section.Section{&prSection},
+		footer:           footer.NewModel(ctx),
+		prView:           prViewModel,
+		issueSidebar:     issueview.NewModel(ctx),
+		branchSidebar:    branchsidebar.NewModel(ctx),
+		notificationView: notificationview.NewModel(ctx),
+		sidebar:          sidebarModel,
+		tabs:             tabs.NewModel(ctx),
+	}
+
+	newModel, _ := m.Update(tea.KeyPressMsg{Text: "ctrl+right"})
+	m = newModel.(Model)
+	require.Equal(t, previewPane, m.activePane)
+
+	initialRow := prSection.CurrRow()
+	initialOffset := m.sidebar.YOffset()
+	newModel, _ = m.Update(tea.KeyPressMsg{Text: "down"})
+	m = newModel.(Model)
+	require.Equal(t, initialRow, prSection.CurrRow())
+	require.Greater(t, m.sidebar.YOffset(), initialOffset)
+
+	newModel, _ = m.Update(tea.KeyPressMsg{Text: "g"})
+	m = newModel.(Model)
+	require.Greater(t, m.sidebar.YOffset(), 0)
+
+	newModel, _ = m.Update(tea.KeyPressMsg{Text: "h"})
+	m = newModel.(Model)
+	require.Equal(t, 0, m.sidebar.YOffset())
+
+	newModel, _ = m.Update(tea.KeyPressMsg{Text: "ctrl+left"})
+	m = newModel.(Model)
+	require.Equal(t, mainPane, m.activePane)
+
+	newModel, _ = m.Update(tea.KeyPressMsg{Text: "down"})
+	m = newModel.(Model)
+	require.Equal(t, initialRow+1, prSection.CurrRow())
 }
 
 func TestOpenPRCommentInputNoScrollPreservesSidebarOffset(t *testing.T) {

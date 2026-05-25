@@ -2,6 +2,8 @@ package tabs
 
 import (
 	"fmt"
+	"image/color"
+	"strings"
 
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
@@ -70,12 +72,45 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) View() string {
 	c := m.carousel.View()
 	logo := m.viewLogo()
-	return m.ctx.Styles.Tabs.TabsRow.
+	content := m.ctx.Styles.Tabs.TabsRow.
 		Width(m.ctx.ScreenWidth).
 		Height(common.HeaderHeight).
+		BorderBottom(false).
 		Render(lipgloss.JoinHorizontal(lipgloss.Bottom,
 			lipgloss.NewStyle().Width(
-				m.ctx.ScreenWidth-lipgloss.Width(logo)).Render(c), logo))
+				m.ctx.ScreenWidth-lipgloss.Width(logo),
+			).Render(c), logo))
+
+	return lipgloss.JoinVertical(lipgloss.Left, content, m.focusDivider())
+}
+
+func (m Model) focusDivider() string {
+	primary := color.Color(m.ctx.Theme.PrimaryBorder)
+	focus := color.Color(lipgloss.Color("#F6E58D"))
+	line := strings.Repeat("━", max(0, m.ctx.ScreenWidth))
+	if !m.ctx.SidebarOpen || m.ctx.PreviewPosition == "bottom" {
+		color := primary
+		if m.ctx.ActivePane == "main" {
+			color = focus
+		}
+		return lipgloss.NewStyle().Foreground(color).Render(line)
+	}
+
+	mainWidth := max(0, min(m.ctx.MainContentWidth, m.ctx.ScreenWidth))
+	previewWidth := max(0, m.ctx.ScreenWidth-mainWidth)
+	mainColor := primary
+	previewColor := primary
+	if m.ctx.ActivePane == "preview" {
+		previewColor = focus
+	} else {
+		mainColor = focus
+	}
+
+	return lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		lipgloss.NewStyle().Foreground(mainColor).Render(strings.Repeat("━", mainWidth)),
+		lipgloss.NewStyle().Foreground(previewColor).Render(strings.Repeat("━", previewWidth)),
+	)
 }
 
 type latestVersionMsg struct {
@@ -118,7 +153,9 @@ func (m *Model) SetSections(sections []section.Section) {
 	for _, s := range sections {
 		tab := SectionTab{section: s, spinner: spinner.New(
 			spinner.WithSpinner(spinner.Dot), spinner.WithStyle(
-				lipgloss.NewStyle().Foreground(m.ctx.Theme.FaintText).PaddingLeft(2)))}
+				lipgloss.NewStyle().Foreground(m.ctx.Theme.FaintText).PaddingLeft(2),
+			),
+		)}
 		sectionTabs = append(sectionTabs, tab)
 	}
 	m.sectionTabs = sectionTabs
@@ -167,7 +204,8 @@ func (m *Model) viewLogo() string {
 	return lipgloss.NewStyle().
 		Padding(0, 1, 0, 2).
 		Height(2).
-		Render(lipgloss.JoinHorizontal(lipgloss.Bottom,
+		Render(lipgloss.JoinHorizontal(
+			lipgloss.Bottom,
 			lipgloss.NewStyle().Foreground(context.LogoColor).Render(constants.Logo),
 			" ",
 			version,

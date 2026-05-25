@@ -68,7 +68,8 @@ func (m Model) View() string {
 			Render(
 				strings.Repeat(
 					" ",
-					utils.Max(0,
+					utils.Max(
+						0,
 						m.ctx.ScreenWidth-lipgloss.Width(
 							viewSwitcher,
 						)-lipgloss.Width(leftSection)-
@@ -76,7 +77,9 @@ func (m Model) View() string {
 							lipgloss.Width(
 								helpIndicator,
 							),
-					)))
+					),
+				),
+			)
 
 		footer = m.ctx.Styles.Common.FooterStyle.
 			Render(lipgloss.JoinHorizontal(lipgloss.Top, viewSwitcher, leftSection, spacing,
@@ -201,7 +204,8 @@ func (m *Model) renderViewSwitcher(ctx *context.ProgramContext) string {
 		ctx.Styles.ViewSwitcher.ViewsSeparator.Render(viewSeparator),
 		m.renderViewButton(config.IssuesView),
 		lipgloss.NewStyle().Background(ctx.Styles.Common.FooterStyle.GetBackground()).Foreground(
-			ctx.Styles.ViewSwitcher.ViewsSeparator.GetBackground()).Render(" "),
+			ctx.Styles.ViewSwitcher.ViewsSeparator.GetBackground(),
+		).Render(" "),
 		repo,
 		ctx.Styles.Common.FooterStyle.Foreground(m.ctx.Theme.FaintText).Render(" • "),
 		user,

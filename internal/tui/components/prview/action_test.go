@@ -45,40 +45,38 @@ func newTestModelForAction(t *testing.T) Model {
 func TestMsgToActionReturnsCorrectActions(t *testing.T) {
 	testCases := []struct {
 		name           string
-		keyBindingText rune
+		msg            tea.KeyPressMsg
 		expectedAction PRActionType
 	}{
-		{"approve key", 'v', PRActionApprove},
-		{"assign key", 'a', PRActionAssign},
-		{"request review key", 'r', PRActionRequestReview},
-		{"comment key", 'c', PRActionComment},
-		{"diff key", 'd', PRActionDiff},
-		{"checkout key C", 'C', PRActionCheckout},
-		{"ready key", 'W', PRActionReady},
-		{"toggle open/close key", 'X', PRActionReopen},
-		{"merge key", 'm', PRActionMerge},
-		{"update key", 'u', PRActionUpdate},
-		{"summary view more key", 'e', PRActionSummaryViewMore},
-		{"approve workflows key", 'V', PRActionApproveWorkflows},
-		{"previous review thread key", '[', PRActionPrevReviewThread},
-		{"next review thread key", ']', PRActionNextReviewThread},
-		{"toggle review thread key", 'z', PRActionToggleReviewThread},
+		{"approve key", tea.KeyPressMsg{Code: 'v'}, PRActionApprove},
+		{"assign key", tea.KeyPressMsg{Code: 'a'}, PRActionAssign},
+		{"request review key", tea.KeyPressMsg{Code: 'r'}, PRActionRequestReview},
+		{"comment key", tea.KeyPressMsg{Code: 'c'}, PRActionComment},
+		{"diff key", tea.KeyPressMsg{Code: 'd'}, PRActionDiff},
+		{"checkout key C", tea.KeyPressMsg{Code: 'C'}, PRActionCheckout},
+		{"ready key", tea.KeyPressMsg{Code: 'W'}, PRActionReady},
+		{"toggle open/close key", tea.KeyPressMsg{Code: 'X'}, PRActionReopen},
+		{"merge key", tea.KeyPressMsg{Code: 'm'}, PRActionMerge},
+		{"update key", tea.KeyPressMsg{Code: 'u'}, PRActionUpdate},
+		{"summary view more key", tea.KeyPressMsg{Code: 'e'}, PRActionSummaryViewMore},
+		{"approve workflows key", tea.KeyPressMsg{Code: 'V'}, PRActionApproveWorkflows},
+		{"previous review thread key", tea.KeyPressMsg{Text: "ctrl+up"}, PRActionPrevReviewThread},
+		{"next review thread key", tea.KeyPressMsg{Text: "ctrl+down"}, PRActionNextReviewThread},
+		{"toggle review thread key", tea.KeyPressMsg{Code: 'z'}, PRActionToggleReviewThread},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			msg := tea.KeyPressMsg{Code: tc.keyBindingText}
+			action := MsgToAction(tc.msg)
 
-			action := MsgToAction(msg)
-
-			require.NotNil(t, action, "expected action for key %q", tc.keyBindingText)
+			require.NotNil(t, action, "expected action for key %q", tc.msg.String())
 			require.Equal(
 				t,
 				tc.expectedAction,
 				action.Type,
 				"expected action type %v for key %q, got %v",
 				tc.expectedAction,
-				tc.keyBindingText,
+				tc.msg.String(),
 				action.Type,
 			)
 		})
@@ -158,7 +156,7 @@ func TestUpdateHandlesSidebarTabNavigation(t *testing.T) {
 		m.carousel.MoveRight()
 		initialTab := m.carousel.SelectedItem()
 
-		msg := tea.KeyPressMsg{Text: "ctrl+left"}
+		msg := tea.KeyPressMsg{Code: tea.KeyLeft}
 		m, _ = m.Update(msg)
 
 		require.NotEqual(t, initialTab, m.carousel.SelectedItem(),
@@ -169,7 +167,7 @@ func TestUpdateHandlesSidebarTabNavigation(t *testing.T) {
 		m := newTestModelForAction(t)
 		initialTab := m.carousel.SelectedItem()
 
-		msg := tea.KeyPressMsg{Text: "ctrl+right"}
+		msg := tea.KeyPressMsg{Code: tea.KeyRight}
 		m, _ = m.Update(msg)
 
 		require.NotEqual(t, initialTab, m.carousel.SelectedItem(),

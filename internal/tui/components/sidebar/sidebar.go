@@ -40,16 +40,22 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
+		case key.Matches(msg, keys.Keys.Down):
+			m.viewport.ScrollDown(1)
+
+		case key.Matches(msg, keys.Keys.Up):
+			m.viewport.ScrollUp(1)
+
 		case key.Matches(msg, keys.Keys.PageDown):
 			m.viewport.HalfPageDown()
 
 		case key.Matches(msg, keys.Keys.PageUp):
 			m.viewport.HalfPageUp()
 
-		case key.Matches(msg, keys.Keys.PreviewTop):
+		case key.Matches(msg, keys.Keys.PreviewTop), key.Matches(msg, keys.Keys.FirstLine):
 			m.viewport.GotoTop()
 
-		case key.Matches(msg, keys.Keys.PreviewBottom):
+		case key.Matches(msg, keys.Keys.PreviewBottom), key.Matches(msg, keys.Keys.LastLine):
 			m.viewport.GotoBottom()
 		}
 	}
@@ -68,6 +74,9 @@ func (m Model) View() string {
 		style := m.ctx.Styles.Sidebar.BottomRoot.
 			Height(height).
 			Width(width)
+		if m.ctx.ActivePane == "preview" {
+			style = focusedBorder(style)
+		}
 
 		if m.data == "" {
 			return style.Align(lipgloss.Center).Render(
@@ -91,6 +100,10 @@ func (m Model) View() string {
 	}
 
 	return style.Render(m.renderContent())
+}
+
+func focusedBorder(style lipgloss.Style) lipgloss.Style {
+	return style.BorderForeground(lipgloss.Color("#F6E58D"))
 }
 
 func (m Model) renderContent() string {
