@@ -107,7 +107,8 @@ func (m *Model) viewChecksStatus() (string, checkSectionStatus) {
 			fmt.Sprintf(
 				"%d awaiting approval. Press %s to run.",
 				stats.awaitingApproval,
-				m.ctx.Styles.KeyHint.Render(keys.PRKeys.ApproveWorkflows.Keys()[0])),
+				m.ctx.Styles.KeyHint.Render(keys.PRKeys.ApproveWorkflows.Keys()[0]),
+			),
 		)
 	}
 	if stats.inProgress > 0 {
@@ -319,27 +320,32 @@ func (m *Model) viewChecksBar() string {
 	if stats.failed > 0 {
 		failWidth := int(math.Floor((float64(stats.failed) / total) * float64(w)))
 		sections = append(sections, lipgloss.NewStyle().Width(failWidth).Foreground(
-			m.ctx.Theme.ErrorText).Height(1).Render(strings.Repeat("▃", failWidth)))
+			m.ctx.Theme.ErrorText,
+		).Height(1).Render(strings.Repeat("▃", failWidth)))
 	}
 	if stats.awaitingApproval > 0 {
 		awWidth := int(math.Floor((float64(stats.awaitingApproval) / total) * float64(w)))
 		sections = append(sections, lipgloss.NewStyle().Width(awWidth).Foreground(
-			m.ctx.Theme.WarningText).Height(1).Render(strings.Repeat("▃", awWidth)))
+			m.ctx.Theme.WarningText,
+		).Height(1).Render(strings.Repeat("▃", awWidth)))
 	}
 	if stats.inProgress > 0 {
 		ipWidth := int(math.Floor((float64(stats.inProgress) / total) * float64(w)))
 		sections = append(sections, lipgloss.NewStyle().Width(ipWidth).Foreground(
-			m.ctx.Theme.WarningText).Height(1).Render(strings.Repeat("▃", ipWidth)))
+			m.ctx.Theme.WarningText,
+		).Height(1).Render(strings.Repeat("▃", ipWidth)))
 	}
 	if stats.skipped > 0 || stats.neutral > 0 {
 		skipWidth := int(math.Floor((float64(stats.skipped+stats.neutral) / total) * float64(w)))
 		sections = append(sections, lipgloss.NewStyle().Width(skipWidth).Foreground(
-			m.ctx.Theme.FaintText).Height(1).Render(strings.Repeat("▃", skipWidth)))
+			m.ctx.Theme.FaintText,
+		).Height(1).Render(strings.Repeat("▃", skipWidth)))
 	}
 	if stats.succeeded > 0 {
 		succWidth := int(math.Floor((float64(stats.succeeded) / total) * float64(w)))
 		sections = append(sections, lipgloss.NewStyle().Width(succWidth).Foreground(
-			m.ctx.Theme.SuccessText).Height(1).Render(strings.Repeat("▃", succWidth)))
+			m.ctx.Theme.SuccessText,
+		).Height(1).Render(strings.Repeat("▃", succWidth)))
 	}
 
 	return strings.Join(sections, " ")
@@ -572,16 +578,17 @@ func (sidebar *Model) renderChecks() string {
 		lipgloss.Left,
 		title,
 		lipgloss.NewStyle().PaddingLeft(2).Width(sidebar.getIndentedContentWidth()).Render(
-			lipgloss.JoinVertical(lipgloss.Left, parts...)),
+			lipgloss.JoinVertical(lipgloss.Left, parts...),
+		),
 	)
 }
 
-func (m *Model) renderEnhanceChecks() string {
-	if m.enhanceChecks == nil {
+func (m *Model) renderActionChecks() string {
+	if m.actionChecks == nil {
 		return m.renderChecks()
 	}
-	m.enhanceChecks.SetSize(m.getIndentedContentWidth(), m.enhanceChecksHeight())
-	return m.enhanceChecks.EmbeddedView()
+	m.actionChecks.SetSize(m.getIndentedContentWidth(), m.actionChecksHeight())
+	return m.actionChecks.EmbeddedView()
 }
 
 type checksStats struct {
@@ -617,10 +624,12 @@ func (m *Model) getChecksStats() checksStats {
 	allChecks := make([]data.ContextCountByState, 0)
 	allChecks = append(
 		allChecks,
-		lastCommit.Commit.StatusCheckRollup.Contexts.CheckRunCountsByState...)
+		lastCommit.Commit.StatusCheckRollup.Contexts.CheckRunCountsByState...,
+	)
 	allChecks = append(
 		allChecks,
-		lastCommit.Commit.StatusCheckRollup.Contexts.StatusContextCountsByState...)
+		lastCommit.Commit.StatusCheckRollup.Contexts.StatusContextCountsByState...,
+	)
 
 	for _, count := range allChecks {
 		addSharedStats(&res, string(count.State), int(count.Count))

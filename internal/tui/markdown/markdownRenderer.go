@@ -20,6 +20,10 @@ func InitializeMarkdownStyle(hasDarkBackground bool) {
 }
 
 func GetMarkdownRenderer(width int) glamour.TermRenderer {
+	if markdownStyle == nil {
+		InitializeMarkdownStyle(true)
+	}
+
 	markdownRenderer, err := glamour.NewTermRenderer(
 		glamour.WithStyles(*markdownStyle),
 		glamour.WithWordWrap(width),

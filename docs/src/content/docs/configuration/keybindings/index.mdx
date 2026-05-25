@@ -9,7 +9,7 @@ When a user presses the key or key combination the dashboard shells out and exec
 
 To help you identify your custom commands, an additional `name` property can be supplied to describe it in the help menu.
 
-There are 3 types of keybindings: `universal`, `prs` and `issues`.
+There are 5 types of keybindings: `universal`, `prs`, `issues`, `notifications`, and `actions`.
 
 ## Universal Keybindings
 
@@ -210,3 +210,56 @@ The following built-in notifications commands can be overridden with custom keyb
 | `toggleBookmark` | toggle bookmark                                    |
 
 See [notification keys](../../getting-started/keybindings/selected-notification/) for more details.
+
+## Actions Keybindings
+
+Define keybindings for the Actions view or override existing ones.
+
+For example:
+
+```yaml
+keybindings:
+  actions:
+    - key: T
+      builtin: toggleSmartFiltering
+    - key: W
+      command: gh run watch {{.RunNumber}} --repo {{.RepoName}}
+```
+
+### Available Command Arguments
+
+| Argument      | Description                                      |
+| ------------- | ------------------------------------------------ |
+| `RepoName`    | The full name of the repo                        |
+| `RunNumber`   | The workflow run ID                              |
+| `WorkflowName` | The workflow name                               |
+| `BranchName`  | The branch or ref the run executed against       |
+| `Event`       | The GitHub event that triggered the workflow run |
+| `Actor`       | The user who triggered the workflow run          |
+
+### Built-in Commands
+
+The following built-in Actions commands can be overridden with custom keybinds:
+
+| Command                | Description                    |
+| ---------------------- | ------------------------------ |
+| `toggleSmartFiltering` | toggle current-repo filtering  |
+| `sortOrder`            | cycle Actions list sort order  |
+| `openUrl`              | open selected run/job/check    |
+| `openPR`               | open the associated PR         |
+| `nextRow`              | move to next row in the viewer |
+| `prevRow`              | move to previous row in viewer |
+| `nextPane`             | move to next viewer pane       |
+| `prevPane`             | move to previous viewer pane   |
+| `zoomPane`             | zoom current viewer pane       |
+| `gotoTop`              | go to top of current pane      |
+| `gotoBottom`           | go to bottom of current pane   |
+| `search`               | search logs/current pane       |
+| `cancelSearch`         | cancel log search              |
+| `applySearch`          | apply log search               |
+| `nextSearchMatch`      | next log search match          |
+| `prevSearchMatch`      | previous log search match      |
+| `mode`                 | switch viewer display mode     |
+| `refreshAll`           | refresh viewer data            |
+| `rerun`                | rerun selected run/job         |
+| `quit`                 | quit viewer context            |

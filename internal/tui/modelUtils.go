@@ -164,6 +164,15 @@ func (m *Model) executeKeybinding(key string) tea.Cmd {
 				}
 			}
 		}
+	case config.ActionsView:
+		for _, keybinding := range m.ctx.Config.Keybindings.Actions {
+			if keybinding.Key != key || keybinding.Command == "" {
+				continue
+			}
+			if run, ok := currRowData.(*data.WorkflowRun); ok {
+				return m.runCustomActionCommand(keybinding.Command, run)
+			}
+		}
 	default:
 		// Not a valid case - ignore it
 	}
@@ -244,7 +253,8 @@ func (m *Model) runCustomPRCommand(commandTemplate string, prData *prrow.Data) t
 }
 
 func (m *Model) runCustomIssueCommand(commandTemplate string, issueData *data.IssueData) tea.Cmd {
-	return m.runCustomCommand(commandTemplate,
+	return m.runCustomCommand(
+		commandTemplate,
 		&map[string]any{
 			"RepoName":    issueData.GetRepoNameWithOwner(),
 			"IssueNumber": issueData.Number,
@@ -277,6 +287,21 @@ func (m *Model) runCustomBranchCommand(commandTemplate string, branchData *prrow
 func (m *Model) runCustomUniversalCommand(commandTemplate string) tea.Cmd {
 	input := map[string]any{"RepoPath": m.ctx.RepoPath}
 	return m.runCustomCommand(commandTemplate, &input)
+}
+
+func (m *Model) runCustomActionCommand(commandTemplate string, run *data.WorkflowRun) tea.Cmd {
+	return m.runCustomCommand(commandTemplate, &map[string]any{
+		"RepoName":   run.GetRepoNameWithOwner(),
+		"RunId":      run.Id,
+		"RunTitle":   run.GetTitle(),
+		"Workflow":   run.Name,
+		"Branch":     run.HeadBranch,
+		"Event":      run.Event,
+		"Actor":      run.Actor.Login,
+		"Conclusion": run.Conclusion,
+		"Status":     run.Status,
+		"HeadSha":    run.HeadSha,
+	})
 }
 
 func (m *Model) runCustomNotificationPRCommand(
@@ -337,7 +362,8 @@ func (m *Model) executeCustomCommand(cmd string) tea.Cmd {
 				return constants.ErrMsg{Err: mdErr}
 			}
 			return constants.ErrMsg{Err: errors.New(
-				lipgloss.JoinVertical(lipgloss.Left,
+				lipgloss.JoinVertical(
+					lipgloss.Left,
 					fmt.Sprintf("Whoops, got an error: %s", err),
 					md,
 				),
@@ -355,7 +381,8 @@ func (m *Model) notify(text string) tea.Cmd {
 			StartText:    text,
 			FinishedText: text,
 			State:        context.TaskStart,
-		})
+		},
+	)
 
 	finishCmd := func() tea.Msg {
 		return constants.TaskFinishedMsg{
@@ -374,7 +401,8 @@ func (m *Model) notifyErr(text string) tea.Cmd {
 			StartText:    text,
 			FinishedText: text,
 			State:        context.TaskStart,
-		})
+		},
+	)
 
 	finishCmd := func() tea.Msg {
 		return constants.TaskFinishedMsg{

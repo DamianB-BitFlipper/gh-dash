@@ -105,6 +105,9 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 			additionalKeys = append(additionalKeys, IssueFullHelp()...)
 			customKeys = append(customKeys, CustomIssueBindings...)
 		}
+	case config.ActionsView:
+		additionalKeys = ActionsFullHelp()
+		customKeys = append(customKeys, CustomActionBindings...)
 	default:
 		additionalKeys = IssueFullHelp()
 		customKeys = append(customKeys, CustomIssueBindings...)
@@ -332,6 +335,7 @@ var (
 	CustomIssueBindings        []key.Binding
 	CustomBranchBindings       []key.Binding
 	CustomNotificationBindings []key.Binding
+	CustomActionBindings       []key.Binding
 )
 
 func rebindUniversal(universal []config.Keybinding) error {

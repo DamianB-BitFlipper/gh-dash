@@ -8,7 +8,6 @@ import StargazersCount from "./StargazersCount.astro";
 import StargazersFallback from "./StargazersFallback.astro";
 
 const isDashHomepage = Astro.locals.starlightRoute.id === "";
-const isEnhanceHomepage = Astro.locals.starlightRoute.id === "enhance";
 ---
 
 <div class="bg-[var(--sl-color-bg)] px-2 py-2 lg:px-6">
@@ -19,13 +18,6 @@ const isEnhanceHomepage = Astro.locals.starlightRoute.id === "enhance";
       <a href="/" class="no-underline">
         <Logo />
       </a>
-      {
-        isEnhanceHomepage ? (
-          <p class="ml-2 hidden h-min text-sm leading-[18px] text-orange-400 uppercase md:block dark:text-orange-600">
-            Companion
-          </p>
-        ) : null
-      }
     </div>
     <form action="/insiders/" class="flex items-center">
       <button

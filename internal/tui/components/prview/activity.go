@@ -18,11 +18,11 @@ import (
 )
 
 type cachedActivity struct {
-	UpdatedAt       time.Time
-	RenderedString  string
-	RenderedCard    string
-	FocusTarget     int
-	Thread          *cachedReviewThread
+	UpdatedAt      time.Time
+	RenderedString string
+	RenderedCard   string
+	FocusTarget    int
+	Thread         *cachedReviewThread
 }
 
 type cachedReviewThread struct {

@@ -69,6 +69,8 @@ func (a *ViewType) UnmarshalJSON(b []byte) error {
 		*a = IssuesView
 	case "repo":
 		*a = RepoView
+	case "actions":
+		*a = ActionsView
 	}
 
 	return nil
@@ -79,6 +81,7 @@ const (
 	PRsView           ViewType = "prs"
 	IssuesView        ViewType = "issues"
 	RepoView          ViewType = "repo"
+	ActionsView       ViewType = "actions"
 )
 
 type SectionConfig struct {
@@ -107,6 +110,13 @@ type NotificationsSectionConfig struct {
 	Title   string
 	Filters string
 	Limit   *int `yaml:"limit,omitempty"`
+}
+
+type ActionsSectionConfig struct {
+	Title   string
+	Filters string
+	Limit   *int                `yaml:"limit,omitempty"`
+	Layout  ActionsLayoutConfig `yaml:"layout,omitempty"`
 }
 
 type PreviewConfig struct {
@@ -180,9 +190,22 @@ type IssuesLayoutConfig struct {
 	Reactions   ColumnConfig `yaml:"reactions,omitempty"`
 }
 
+type ActionsLayoutConfig struct {
+	Status    ColumnConfig `yaml:"status,omitempty"`
+	Repo      ColumnConfig `yaml:"repo,omitempty"`
+	Workflow  ColumnConfig `yaml:"workflow,omitempty"`
+	Branch    ColumnConfig `yaml:"branch,omitempty"`
+	Event     ColumnConfig `yaml:"event,omitempty"`
+	Actor     ColumnConfig `yaml:"actor,omitempty"`
+	Title     ColumnConfig `yaml:"title,omitempty"`
+	UpdatedAt ColumnConfig `yaml:"updatedAt,omitempty"`
+	CreatedAt ColumnConfig `yaml:"createdAt,omitempty"`
+}
+
 type LayoutConfig struct {
-	Prs    PrsLayoutConfig    `yaml:"prs,omitempty"`
-	Issues IssuesLayoutConfig `yaml:"issues,omitempty"`
+	Prs     PrsLayoutConfig     `yaml:"prs,omitempty"`
+	Issues  IssuesLayoutConfig  `yaml:"issues,omitempty"`
+	Actions ActionsLayoutConfig `yaml:"actions,omitempty"`
 }
 
 type Defaults struct {
@@ -191,6 +214,7 @@ type Defaults struct {
 	PrApproveComment       string        `yaml:"prApproveComment,omitempty"`
 	IssuesLimit            int           `yaml:"issuesLimit"`
 	NotificationsLimit     int           `yaml:"notificationsLimit"`
+	ActionsLimit           int           `yaml:"actionsLimit"`
 	View                   ViewType      `yaml:"view"`
 	Layout                 LayoutConfig  `yaml:"layout,omitempty"`
 	RefetchIntervalMinutes int           `yaml:"refetchIntervalMinutes,omitempty"`
@@ -231,6 +255,7 @@ type Keybindings struct {
 	Prs           []Keybinding `yaml:"prs,omitempty"`
 	Branches      []Keybinding `yaml:"branches,omitempty"`
 	Notifications []Keybinding `yaml:"notifications,omitempty"`
+	Actions       []Keybinding `yaml:"actions,omitempty"`
 }
 
 type Pager struct {
@@ -322,6 +347,7 @@ type Config struct {
 	PRSections               []PrsSectionConfig           `yaml:"prSections"`
 	IssuesSections           []IssuesSectionConfig        `yaml:"issuesSections"`
 	NotificationsSections    []NotificationsSectionConfig `yaml:"notificationsSections"`
+	ActionsSections          []ActionsSectionConfig       `yaml:"actionsSections"`
 	Repo                     RepoConfig                   `yaml:"repo,omitempty"`
 	Defaults                 Defaults                     `yaml:"defaults"`
 	Keybindings              Keybindings                  `yaml:"keybindings"`
@@ -357,6 +383,7 @@ func (parser ConfigParser) getDefaultConfig() Config {
 			PrApproveComment:       "LGTM",
 			IssuesLimit:            20,
 			NotificationsLimit:     20,
+			ActionsLimit:           20,
 			View:                   PRsView,
 			RefetchIntervalMinutes: 30,
 			Layout: LayoutConfig{
@@ -410,6 +437,21 @@ func (parser ConfigParser) getDefaultConfig() Config {
 					},
 					Assignees: ColumnConfig{
 						Width:  utils.IntPtr(20),
+						Hidden: utils.BoolPtr(true),
+					},
+				},
+				Actions: ActionsLayoutConfig{
+					Status:   ColumnConfig{Width: utils.IntPtr(3)},
+					Repo:     ColumnConfig{Width: utils.IntPtr(20)},
+					Workflow: ColumnConfig{Width: utils.IntPtr(18)},
+					Branch:   ColumnConfig{Width: utils.IntPtr(16)},
+					Event:    ColumnConfig{Width: utils.IntPtr(10)},
+					Actor:    ColumnConfig{Width: utils.IntPtr(12)},
+					UpdatedAt: ColumnConfig{
+						Width: utils.IntPtr(lipgloss.Width("2mo  ")),
+					},
+					CreatedAt: ColumnConfig{
+						Width:  utils.IntPtr(lipgloss.Width("2mo  ")),
 						Hidden: utils.BoolPtr(true),
 					},
 				},
@@ -481,10 +523,18 @@ func (parser ConfigParser) getDefaultConfig() Config {
 				Filters: "reason:team-mention",
 			},
 		},
+		ActionsSections: []ActionsSectionConfig{
+			{Title: "All", Filters: ""},
+			{Title: "Failed", Filters: "status:failure"},
+			{Title: "In Progress", Filters: "status:in_progress"},
+			{Title: "My Runs", Filters: "actor:@me"},
+		},
 		Keybindings: Keybindings{
-			Universal: []Keybinding{},
-			Issues:    []Keybinding{},
-			Prs:       []Keybinding{},
+			Universal:     []Keybinding{},
+			Issues:        []Keybinding{},
+			Prs:           []Keybinding{},
+			Notifications: []Keybinding{},
+			Actions:       []Keybinding{},
 		},
 		RepoPaths: map[string]string{},
 		Theme: &ThemeConfig{
@@ -655,14 +705,17 @@ func (parser ConfigParser) mergeConfigs(globalCfgPath, userProvidedCfgPath strin
 			universalKeybinds := mergeKeybindings(overrides, dest, "universal")
 			prsKeybinds := mergeKeybindings(overrides, dest, "prs")
 			issuesKeybinds := mergeKeybindings(overrides, dest, "issues")
+			actionsKeybinds := mergeKeybindings(overrides, dest, "actions")
 
 			maps.Merge(overrides, dest)
 			dest["keybindings"].(map[string]any)["universal"] = universalKeybinds
 			dest["keybindings"].(map[string]any)["prs"] = prsKeybinds
 			dest["keybindings"].(map[string]any)["issues"] = issuesKeybinds
+			dest["keybindings"].(map[string]any)["actions"] = actionsKeybinds
 			dest["prSections"] = overridesCopy["prSections"]
 			dest["issuesSections"] = overridesCopy["issuesSections"]
 			dest["notificationsSections"] = overridesCopy["notificationsSections"]
+			dest["actionsSections"] = overridesCopy["actionsSections"]
 
 			return nil
 		}),

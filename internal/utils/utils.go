@@ -78,6 +78,10 @@ func TimeElapsed(then time.Time) string {
 	return parts[0] + text
 }
 
+func FormatTimeSince(since time.Time) time.Duration {
+	return time.Since(since).Round(time.Second)
+}
+
 func BoolPtr(b bool) *bool { return &b }
 
 func StringPtr(s string) *string { return &s }

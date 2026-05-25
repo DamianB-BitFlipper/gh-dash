@@ -26,6 +26,15 @@ notificationsSections:
     filters: "reason:subscribed"
   - title: Team Mentioned
     filters: "reason:team-mention"
+actionsSections:
+  - title: All
+    filters: ""
+  - title: Failed
+    filters: status:failure
+  - title: In Progress
+    filters: status:in_progress
+  - title: My Runs
+    filters: actor:@me
 repo:
   branchesRefetchIntervalSeconds: 30
   prsRefetchIntervalSeconds: 60
@@ -39,6 +48,7 @@ defaults:
   prsLimit: 100
   issuesLimit: 100
   notificationsLimit: 100
+  actionsLimit: 20
   view: prs
   layout:
     prs:
@@ -77,6 +87,24 @@ defaults:
         hidden: false
       assignees:
         width: 20
+        hidden: true
+    actions:
+      status:
+        width: 3
+      repo:
+        width: 20
+      workflow:
+        width: 18
+      branch:
+        width: 16
+      event:
+        width: 10
+      actor:
+        width: 12
+      updatedAt:
+        width: 5
+      createdAt:
+        width: 5
         hidden: true
   refetchIntervalMinutes: 10
 keybindings:
@@ -119,6 +147,8 @@ keybindings:
     - key: a
       command: >-
         gh issue open --repo {{.RepoName}} {{.PrNumber}}
+  notifications: []
+  actions: []
 repoPaths:
   dlvhdr/*: ~/code/personal/*
 theme:

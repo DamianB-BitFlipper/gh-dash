@@ -1,0 +1,59 @@
+---
+title: Actions Sections
+---
+
+# Actions Section Options (`actionsSections`)
+
+Defines a section in the dashboard's Actions view.
+
+- Every section must define a [`title`] and [`filters`].
+- Filters must include a repo qualifier, such as `repo:owner/name`.
+- When you define [`limit`] for a section, that value overrides the [`defaults.actionsLimit`] setting.
+- When you define [`layout`] for a section, that value overrides the [`defaults.layout.actions`] setting.
+
+[`title`]: #actions-title-title
+[`filters`]: #actions-filters-filters
+[`limit`]: #actions-fetch-limit-limit
+[`layout`]: #actions-section-layout-layout
+[`defaults.actionsLimit`]: /configuration/defaults/#actions-fetch-limit-actionslimit
+[`defaults.layout.actions`]: /configuration/defaults/#layout-options-layout
+
+## Actions Title (`title`)
+
+This setting defines the section's name. The dashboard displays this value in the tabs for the Actions view.
+
+## Actions Filters (`filters`)
+
+This setting defines which workflow runs to fetch. Actions sections are repo-scoped, so include a repository filter:
+
+```yaml
+actionsSections:
+  - title: CI
+    filters: repo:owner/name
+```
+
+You can narrow results with additional tokens such as `status:failure`, `status:in_progress`, or `actor:@me`.
+
+## Actions Section Layout (`layout`)
+
+You can define how an Actions section displays items in its table by setting options for the available columns.
+Available columns are status, repo, workflow, title, branch, event, actor, updatedAt, and createdAt.
+
+## Actions Fetch Limit (`limit`)
+
+| Type    | Minimum | Default |
+| :------ | :-----: | :-----: |
+| Integer |    1    |   20    |
+
+This setting defines how many workflow runs the dashboard should fetch for the section when:
+
+- The dashboard first loads.
+- The [fetch interval] elapses.
+- You navigate to the next run in a table without another fetched run to display.
+- You use the [refresh current section] or [refresh all sections] commands.
+
+This setting overrides the [`defaults.actionsLimit`] setting.
+
+[fetch interval]: /configuration/defaults/#refetch-interval-in-minutes-refetchintervalminutes
+[refresh current section]: /getting-started/keybindings/global/#r---refresh-current-section
+[refresh all sections]: /getting-started/keybindings/global/#r---refresh-all-sections

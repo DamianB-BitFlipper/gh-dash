@@ -86,11 +86,12 @@ func (m Model) View() string {
 }
 
 func (m Model) viewTabs() string {
-	views := []config.ViewType{config.PRsView, config.IssuesView, config.NotificationsView}
+	views := []config.ViewType{config.PRsView, config.IssuesView, config.NotificationsView, config.ActionsView}
 	labels := map[config.ViewType]string{
 		config.PRsView:           "Pull Requests",
 		config.IssuesView:        "Issues",
 		config.NotificationsView: "Notifications",
+		config.ActionsView:       "Actions",
 	}
 	parts := make([]string, 0, len(views)*2-1)
 	inactiveStyle := lipgloss.NewStyle().

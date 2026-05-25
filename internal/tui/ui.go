@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"runtime/debug"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +23,8 @@ import (
 	"github.com/dlvhdr/gh-dash/v4/internal/data"
 	"github.com/dlvhdr/gh-dash/v4/internal/git"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/common"
+	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/actionssection"
+	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/actionview"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/branch"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/branchsidebar"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/footer"
@@ -60,12 +63,15 @@ type Model struct {
 	issueSidebar      issueview.Model
 	branchSidebar     branchsidebar.Model
 	notificationView  notificationview.Model
+	actionRunView     *actionview.Model
+	actionRunViewKey  string
 	currSectionId     int
 	footer            footer.Model
 	repo              section.Section
 	prs               []section.Section
 	issues            []section.Section
 	notifications     []section.Section
+	actions           []section.Section
 	tabs              tabs.Model
 	ctx               *context.ProgramContext
 	taskSpinner       spinner.Model
@@ -183,6 +189,16 @@ func (m *Model) initScreen() tea.Msg {
 		cfg.Keybindings.Branches,
 		cfg.Keybindings.Notifications,
 	)
+	if err != nil {
+		showError(err)
+	}
+
+	err = actionview.RebindActionsKeybindings(cfg.Keybindings.Actions)
+	if err != nil {
+		showError(err)
+	}
+
+	err = keys.RebindActionsKeys(cfg.Keybindings.Actions)
 	if err != nil {
 		showError(err)
 	}
@@ -692,6 +708,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			case key.Matches(msg, keys.IssueKeys.ViewPRs):
 				cmds = append(cmds, m.switchSelectedView())
+			}
+		case m.ctx.View == config.ActionsView:
+			switch {
+			case key.Matches(msg, m.keys.OpenGithub):
+				cmds = append(cmds, m.openBrowser())
 			}
 		case m.ctx.View == config.NotificationsView:
 			switch {
@@ -1582,6 +1603,9 @@ func (m *Model) updateSection(id int, sType string, msg tea.Msg) (cmd tea.Cmd) {
 	case issuessection.SectionType:
 		updatedSection, cmd = m.issues[id].Update(msg)
 		m.issues[id] = updatedSection
+	case actionssection.SectionType:
+		updatedSection, cmd = m.actions[id].Update(msg)
+		m.actions[id] = updatedSection
 	}
 
 	currSection := m.getCurrSection()
@@ -1798,6 +1822,66 @@ func openCloseAction(state string) string {
 	return ""
 }
 
+func (m *Model) renderActionsRunPreview(run *data.WorkflowRun) string {
+	if run == nil {
+		return ""
+	}
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		m.ctx.Styles.Common.MainTextStyle.Render(run.GetTitle()),
+		"",
+		fmt.Sprintf("Repository: %s", run.GetRepoNameWithOwner()),
+		fmt.Sprintf("Workflow:   %s", run.Name),
+		fmt.Sprintf("Branch:     %s", run.HeadBranch),
+		fmt.Sprintf("Event:      %s", run.Event),
+		fmt.Sprintf("Actor:      %s", run.Actor.Login),
+		fmt.Sprintf("Status:     %s", actionsRunStatus(run)),
+		fmt.Sprintf("Updated:    %s", run.UpdatedAt.Format(time.RFC1123)),
+		"",
+		m.ctx.Styles.Common.FaintTextStyle.Render("Press o to open this workflow run on GitHub."),
+	)
+}
+
+func actionsRunStatus(run *data.WorkflowRun) string {
+	if run.Conclusion != "" {
+		return run.Conclusion
+	}
+	return run.Status
+}
+
+func (m *Model) ensureActionRunView(run *data.WorkflowRun, width int) tea.Cmd {
+	if run == nil || run.GetRepoNameWithOwner() == "" || run.Id == 0 {
+		m.actionRunView = nil
+		m.actionRunViewKey = ""
+		return nil
+	}
+	key := fmt.Sprintf("%s:%d", run.GetRepoNameWithOwner(), run.Id)
+	if m.actionRunView != nil && m.actionRunViewKey == key {
+		m.actionRunView.SetSize(width, m.ctx.MainContentHeight)
+		return nil
+	}
+	view := actionview.NewModel(run.GetRepoNameWithOwner(), "", actionview.ModelOpts{
+		RunID:    strconv.FormatInt(run.Id, 10),
+		Embedded: true,
+		Theme:    &m.ctx.Theme,
+	})
+	view.SetSize(width, m.ctx.MainContentHeight)
+	m.actionRunView = &view
+	m.actionRunViewKey = key
+	return m.actionRunView.Init()
+}
+
+func (m *Model) shouldUpdateActionRunView(msg tea.Msg) bool {
+	return m.ctx != nil && m.ctx.View == config.ActionsView && m.actionRunView != nil && actionview.HandlesAsyncMsg(msg)
+}
+
+func (m Model) actionsLogsCopySelectionContent() (string, bool) {
+	if m.ctx == nil || m.ctx.View != config.ActionsView || m.actionRunView == nil {
+		return "", false
+	}
+	return m.actionRunView.LogsCopySelectionContent(), true
+}
+
 func (m *Model) syncSidebar() tea.Cmd {
 	if !m.sidebar.IsOpen {
 		return nil
@@ -1840,6 +1924,16 @@ func (m *Model) syncSidebar() tea.Cmd {
 		// Scroll to bottom if in input mode to keep inputbox visible
 		if m.issueSidebar.IsTextInputBoxFocused() {
 			m.sidebar.ScrollToBottom()
+		}
+	case *data.WorkflowRun:
+		keys.SetPRPreviewContext(keys.PRPreviewContextNone)
+		cmd = m.ensureActionRunView(row, width)
+		m.sidebar.ClearHeader()
+		if m.actionRunView == nil {
+			m.sidebar.SetContent(m.renderActionsRunPreview(row))
+		} else {
+			m.actionRunView.SetSize(width, m.ctx.MainContentHeight)
+			m.sidebar.SetContent(m.actionRunView.EmbeddedView())
 		}
 	case *notificationrow.Data:
 		notifId := row.GetId()
@@ -2127,6 +2221,10 @@ func (m *Model) fetchAllViewSections() ([]section.Section, tea.Cmd) {
 		cmds = append(cmds, notifCmd)
 		m.notifications = s
 		return s, tea.Batch(cmds...)
+	case config.ActionsView:
+		s, actionsCmd := actionssection.FetchAllSections(m.ctx)
+		cmds = append(cmds, actionsCmd)
+		return s, tea.Batch(cmds...)
 	case config.PRsView:
 		s, prcmds := prssection.FetchAllSections(m.ctx, m.prs)
 		cmds = append(cmds, prcmds)
@@ -2152,6 +2250,8 @@ func (m *Model) getCurrentViewSections() []section.Section {
 		return m.notifications
 	case config.PRsView:
 		return m.prs
+	case config.ActionsView:
+		return m.actions
 	default:
 		return m.issues
 	}
@@ -2224,6 +2324,19 @@ func (m *Model) setCurrentViewSections(newSections []section.Section) {
 		}
 		m.prs = append(s, newSections...)
 		newSections = m.prs
+	} else if m.ctx.View == config.ActionsView {
+		if missingSearchSection {
+			search := actionssection.NewModel(
+				0,
+				m.ctx,
+				config.ActionsSectionConfig{Title: "", Filters: ""},
+				time.Now(),
+				time.Now(),
+			)
+			s = append(s, &search)
+		}
+		m.actions = append(s, newSections...)
+		newSections = m.actions
 	} else {
 		if missingSearchSection {
 			search := issuessection.NewModel(
@@ -2254,7 +2367,7 @@ func (m *Model) switchSelectedViewBack() tea.Cmd {
 }
 
 func (m *Model) switchSelectedViewInDirection(direction int) tea.Cmd {
-	views := []config.ViewType{config.NotificationsView, config.PRsView, config.IssuesView}
+	views := []config.ViewType{config.NotificationsView, config.PRsView, config.IssuesView, config.ActionsView}
 	if config.IsFeatureEnabled(config.FF_REPO_VIEW) {
 		views = append(views, config.RepoView)
 	}
@@ -2349,6 +2462,14 @@ func (m *Model) isUserDefinedKeybinding(msg tea.KeyMsg) bool {
 						return true
 					}
 				}
+			}
+		}
+	}
+
+	if m.ctx.View == config.ActionsView {
+		for _, keybinding := range m.ctx.Config.Keybindings.Actions {
+			if keybinding.Builtin == "" && keybinding.Key == msg.String() {
+				return true
 			}
 		}
 	}

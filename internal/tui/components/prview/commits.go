@@ -27,7 +27,8 @@ func (m *Model) renderCommits() string {
 
 	commits := m.pr.Data.Enriched.AllCommits.Nodes
 	heading := m.ctx.Styles.Common.MainTextStyle.MarginBottom(1).Underline(true).Render(
-		fmt.Sprintf("%s  %d commits", constants.CommitIcon, len(commits)))
+		fmt.Sprintf("%s  %d commits", constants.CommitIcon, len(commits)),
+	)
 
 	rendered := make([]string, len(commits))
 	for i, commit := range commits {
@@ -52,7 +53,8 @@ func (m *Model) renderCommits() string {
 		statsStr := ""
 		if commit.StatusCheckRollup.Contexts.TotalCount > 0 {
 			stats := m.getStatusCheckRollupStats(commit.StatusCheckRollup)
-			statsStr = lipgloss.JoinHorizontal(lipgloss.Top,
+			statsStr = lipgloss.JoinHorizontal(
+				lipgloss.Top,
 				" ",
 				faint.Render(constants.SmallDotIcon),
 				" ",
@@ -63,7 +65,8 @@ func (m *Model) renderCommits() string {
 			)
 		}
 
-		desc := lipgloss.JoinHorizontal(lipgloss.Top,
+		desc := lipgloss.JoinHorizontal(
+			lipgloss.Top,
 			fainter.Render("│ "),
 			faint.Render(fmt.Sprintf("@%s", name)),
 			faint.Render(" committed "),

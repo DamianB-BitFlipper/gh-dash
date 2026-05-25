@@ -344,13 +344,40 @@ type CommentResponse struct {
 
 // WorkflowRun represents a GitHub Actions workflow run
 type WorkflowRun struct {
-	Id         int64     `json:"id"`
-	Name       string    `json:"name"`
-	HtmlUrl    string    `json:"html_url"`
-	HeadBranch string    `json:"head_branch"`
-	UpdatedAt  time.Time `json:"updated_at"`
-	Conclusion string    `json:"conclusion"` // success, failure, cancelled, etc.
+	Id           int64     `json:"id"`
+	Name         string    `json:"name"`
+	DisplayTitle string    `json:"display_title"`
+	HtmlUrl      string    `json:"html_url"`
+	HeadBranch   string    `json:"head_branch"`
+	HeadSha      string    `json:"head_sha"`
+	Status       string    `json:"status"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	CreatedAt    time.Time `json:"created_at"`
+	RunStartedAt time.Time `json:"run_started_at"`
+	Conclusion   string    `json:"conclusion"` // success, failure, cancelled, etc.
+	Event        string    `json:"event"`
+	Actor        struct {
+		Login string `json:"login"`
+	} `json:"actor"`
+	Repository struct {
+		FullName string `json:"full_name"`
+	} `json:"repository"`
 }
+
+func (run WorkflowRun) GetRepoNameWithOwner() string { return run.Repository.FullName }
+
+func (run WorkflowRun) GetTitle() string {
+	if run.DisplayTitle != "" {
+		return run.DisplayTitle
+	}
+	return run.Name
+}
+
+func (run WorkflowRun) GetNumber() int { return int(run.Id) }
+
+func (run WorkflowRun) GetUrl() string { return run.HtmlUrl }
+
+func (run WorkflowRun) GetUpdatedAt() time.Time { return run.UpdatedAt }
 
 // WorkflowRunsResponse represents the response from the workflow runs API
 type WorkflowRunsResponse struct {

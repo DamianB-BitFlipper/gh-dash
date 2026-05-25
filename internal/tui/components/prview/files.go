@@ -28,7 +28,8 @@ func (m *Model) renderChangesOverview() string {
 
 	time := lipgloss.NewStyle().Render(utils.TimeElapsed(m.pr.Data.Primary.UpdatedAt))
 	return box.Render(
-		lipgloss.JoinVertical(lipgloss.Left,
+		lipgloss.JoinVertical(
+			lipgloss.Left,
 			changes.Render(
 				lipgloss.JoinHorizontal(lipgloss.Top,
 					lipgloss.NewStyle().Foreground(m.ctx.Theme.FaintText).Render(" "),
@@ -75,7 +76,8 @@ func (m *Model) renderFile(file data.ChangedFile) string {
 		lipgloss.JoinHorizontal(lipgloss.Top, additions, deletions),
 		" ",
 		icon,
-		" ")
+		" ",
+	)
 
 	path := file.Path
 	remaining := m.getIndentedContentWidth() - lipgloss.Width(prefix)

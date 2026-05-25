@@ -10,11 +10,9 @@ require (
 	charm.land/log/v2 v2.0.0
 	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/fang v1.0.0
-	github.com/cli/go-gh v1.2.1
 	github.com/cli/go-gh/v2 v2.13.0
 	github.com/cli/shurcooL-graphql v0.0.4
 	github.com/dlvhdr/x/gh-checks v0.4.0
-	github.com/dlvhdr/x/help v0.1.0
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/go-sprout/sprout v1.0.3
 	github.com/google/go-cmp v0.7.0
@@ -23,7 +21,6 @@ require (
 	github.com/knadh/koanf/parsers/yaml v1.1.0
 	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/v2 v2.3.3
-	github.com/lrstanley/bubbletint/v2 v2.0.2
 	github.com/lrstanley/bubblezone/v2 v2.0.0
 	github.com/maypok86/otter/v2 v2.3.0
 	github.com/sahilm/fuzzy v0.1.1

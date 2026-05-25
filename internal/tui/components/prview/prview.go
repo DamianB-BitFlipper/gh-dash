@@ -11,8 +11,8 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	enhancetui "github.com/dlvhdr/gh-dash/v4/internal/enhance/tui"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/common"
+	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/actionview"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/carousel"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/cmpcontroller"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/fuzzyselect"
@@ -34,22 +34,22 @@ var (
 )
 
 type Model struct {
-	ctx                  *context.ProgramContext
-	sectionId            int
-	sectionType          string
-	pr                   *prrow.PullRequest
-	width                int
-	carousel             carousel.Model
-	editor               cmpcontroller.Controller
-	summaryViewMore      bool
-	focusedThread        int
-	activityFocusTargets []int
-	activityCache        activityRenderCache
-	activityBodyCache    map[string]string
-	reviewDiffCache      map[string][]reviewDiffLine
+	ctx                      *context.ProgramContext
+	sectionId                int
+	sectionType              string
+	pr                       *prrow.PullRequest
+	width                    int
+	carousel                 carousel.Model
+	editor                   cmpcontroller.Controller
+	summaryViewMore          bool
+	focusedThread            int
+	activityFocusTargets     []int
+	activityCache            activityRenderCache
+	activityBodyCache        map[string]string
+	reviewDiffCache          map[string][]reviewDiffLine
 	activitySnippetsExpanded bool
-	enhanceChecks        *enhancetui.Model
-	enhanceChecksKey     string
+	actionChecks             *actionview.Model
+	actionChecksKey          string
 }
 
 type activityRenderCache struct {
@@ -163,10 +163,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	}
 
-	if m.IsChecksTab() && m.enhanceChecks != nil {
+	if m.IsChecksTab() && m.actionChecks != nil {
 		var checksCmd tea.Cmd
-		checksModel, checksCmd := m.enhanceChecks.UpdateEmbedded(msg)
-		m.enhanceChecks = &checksModel
+		checksModel, checksCmd := m.actionChecks.UpdateEmbedded(msg)
+		m.actionChecks = &checksModel
 		cmd = tea.Batch(cmd, checksCmd)
 	}
 
@@ -210,7 +210,7 @@ func (m *Model) BodyView() string {
 	case tabs[2]:
 		body.WriteString(m.renderChecksOverview())
 		body.WriteString("\n\n")
-		body.WriteString(m.renderEnhanceChecks())
+		body.WriteString(m.renderActionChecks())
 	case tabs[3]:
 		body.WriteString(m.renderCommits())
 	case tabs[4]:
@@ -640,16 +640,16 @@ func (m *Model) SetSection(id int, sectionType string) {
 func (m *Model) SetRow(d *prrow.Data) {
 	if d == nil {
 		m.pr = nil
-		m.enhanceChecks = nil
-		m.enhanceChecksKey = ""
+		m.actionChecks = nil
+		m.actionChecksKey = ""
 	} else {
 		newPR := d.Primary == nil || m.pr == nil || m.pr.Data == nil || m.pr.Data.Primary == nil || m.pr.Data.Primary.Url != d.Primary.Url
 		if newPR {
 			m.FocusNewComment()
 			m.activitySnippetsExpanded = false
 			m.invalidateActivityCache()
-			m.enhanceChecks = nil
-			m.enhanceChecksKey = ""
+			m.actionChecks = nil
+			m.actionChecksKey = ""
 		}
 		m.pr = &prrow.PullRequest{Ctx: m.ctx, Data: d}
 		m.clampFocusedReviewThread()
@@ -660,53 +660,53 @@ func (m *Model) ActivateChecks() tea.Cmd {
 	if !m.IsChecksTab() {
 		return nil
 	}
-	return m.ensureEnhanceChecks()
+	return m.ensureActionChecks()
 }
 
 func (m *Model) FocusPrevCheck() (bool, tea.Cmd) {
-	if !m.IsChecksTab() || m.enhanceChecks == nil {
+	if !m.IsChecksTab() || m.actionChecks == nil {
 		return false, nil
 	}
-	return m.enhanceChecks.SelectPrevCheck()
+	return m.actionChecks.SelectPrevCheck()
 }
 
 func (m *Model) FocusNextCheck() (bool, tea.Cmd) {
-	if !m.IsChecksTab() || m.enhanceChecks == nil {
+	if !m.IsChecksTab() || m.actionChecks == nil {
 		return false, nil
 	}
-	return m.enhanceChecks.SelectNextCheck()
+	return m.actionChecks.SelectNextCheck()
 }
 
 func (m *Model) FocusChecksLogsSearch() tea.Cmd {
-	if !m.IsChecksTab() || m.enhanceChecks == nil {
+	if !m.IsChecksTab() || m.actionChecks == nil {
 		return nil
 	}
-	return m.enhanceChecks.FocusLogsSearch()
+	return m.actionChecks.FocusLogsSearch()
 }
 
 func (m Model) IsChecksLogsSearchFocused() bool {
-	return m.enhanceChecks != nil && m.IsChecksTab() && m.enhanceChecks.IsLogsSearchFocused()
+	return m.actionChecks != nil && m.IsChecksTab() && m.actionChecks.IsLogsSearchFocused()
 }
 
 func (m Model) ChecksLogsSearchValue() (string, bool) {
-	if !m.IsChecksTab() || m.enhanceChecks == nil {
+	if !m.IsChecksTab() || m.actionChecks == nil {
 		return "", false
 	}
-	return m.enhanceChecks.LogsSearchValue(), true
+	return m.actionChecks.LogsSearchValue(), true
 }
 
 func (m Model) ChecksLogsCopySelectionContent() (string, bool) {
-	if !m.IsChecksTab() || m.enhanceChecks == nil {
+	if !m.IsChecksTab() || m.actionChecks == nil {
 		return "", false
 	}
-	return m.enhanceChecks.LogsCopySelectionContent(), true
+	return m.actionChecks.LogsCopySelectionContent(), true
 }
 
 func (m *Model) ShouldUpdateChecks(msg tea.Msg) bool {
-	return m.IsChecksTab() && m.enhanceChecks != nil && enhancetui.HandlesAsyncMsg(msg)
+	return m.IsChecksTab() && m.actionChecks != nil && actionview.HandlesAsyncMsg(msg)
 }
 
-func (m *Model) ensureEnhanceChecks() tea.Cmd {
+func (m *Model) ensureActionChecks() tea.Cmd {
 	if m.pr == nil || m.pr.Data == nil || m.pr.Data.Primary == nil {
 		return nil
 	}
@@ -714,19 +714,23 @@ func (m *Model) ensureEnhanceChecks() tea.Cmd {
 	repo := m.pr.Data.Primary.GetRepoNameWithOwner()
 	number := fmt.Sprint(m.pr.Data.Primary.GetNumber())
 	key := repo + "#" + number
-	if m.enhanceChecks != nil && m.enhanceChecksKey == key {
-		m.enhanceChecks.SetSize(m.getIndentedContentWidth(), m.enhanceChecksHeight())
+	if m.actionChecks != nil && m.actionChecksKey == key {
+		m.actionChecks.SetSize(m.getIndentedContentWidth(), m.actionChecksHeight())
 		return nil
 	}
 
-	checks := enhancetui.NewModel(repo, number, enhancetui.ModelOpts{Flat: true})
-	checks.SetSize(m.getIndentedContentWidth(), m.enhanceChecksHeight())
-	m.enhanceChecks = &checks
-	m.enhanceChecksKey = key
+	checks := actionview.NewModel(repo, number, actionview.ModelOpts{
+		Flat:     true,
+		Embedded: true,
+		Theme:    &m.ctx.Theme,
+	})
+	checks.SetSize(m.getIndentedContentWidth(), m.actionChecksHeight())
+	m.actionChecks = &checks
+	m.actionChecksKey = key
 	return checks.Init()
 }
 
-func (m *Model) enhanceChecksHeight() int {
+func (m *Model) actionChecksHeight() int {
 	if m.ctx == nil {
 		return 24
 	}

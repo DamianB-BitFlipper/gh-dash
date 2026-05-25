@@ -80,11 +80,11 @@ func (m *Model) copySelectionPaneAt(x, y int) (copySelectionPane, copySelectionB
 }
 
 func (m *Model) copySelectionPreviewLogsBounds() (copySelectionBounds, bool) {
-	if _, ok := m.prView.ChecksLogsCopySelectionContent(); !ok {
+	if _, ok := m.previewLogsCopySelectionContent(); !ok {
 		return copySelectionBounds{}, false
 	}
 
-	logsZone := zone.Get("checks-logs")
+	logsZone := zone.Get("preview-logs")
 	if logsZone == nil || logsZone.IsZero() {
 		return copySelectionBounds{}, false
 	}
@@ -199,7 +199,7 @@ func (m *Model) copySelectionPaneContent(pane copySelectionPane) (copySelectionB
 		if !ok {
 			return copySelectionBounds{}, "", false
 		}
-		content, ok := m.prView.ChecksLogsCopySelectionContent()
+		content, ok := m.previewLogsCopySelectionContent()
 		return bounds, ansi.Strip(content), ok
 	}
 	return copySelectionBounds{}, "", false
@@ -268,7 +268,7 @@ func (m *Model) renderCopySelectionPreviewLogsLayer() *lipgloss.Layer {
 	if !ok {
 		return nil
 	}
-	content, ok := m.prView.ChecksLogsCopySelectionContent()
+	content, ok := m.previewLogsCopySelectionContent()
 	if !ok || content == "" {
 		return nil
 	}
@@ -287,6 +287,13 @@ func (m *Model) renderCopySelectionPreviewLogsLayer() *lipgloss.Layer {
 	)
 	highlighted = clipCopySelectionContent(highlighted, bounds)
 	return lipgloss.NewLayer(highlighted).X(bounds.x).Y(bounds.y)
+}
+
+func (m *Model) previewLogsCopySelectionContent() (string, bool) {
+	if content, ok := m.prView.ChecksLogsCopySelectionContent(); ok {
+		return content, true
+	}
+	return m.actionsLogsCopySelectionContent()
 }
 
 func clipCopySelectionContent(content string, bounds copySelectionBounds) string {
