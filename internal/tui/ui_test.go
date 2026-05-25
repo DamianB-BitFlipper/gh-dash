@@ -901,6 +901,44 @@ func TestNavigationKeysWithNilSection(t *testing.T) {
 	}
 }
 
+func TestQClosesHelpWithoutQuitting(t *testing.T) {
+	cfg, err := config.ParseConfig(config.Location{
+		ConfigFlag:       "../config/testdata/test-config.yml",
+		SkipGlobalConfig: true,
+	})
+	require.NoError(t, err)
+
+	ctx := &context.ProgramContext{
+		Config:       &cfg,
+		View:         config.PRsView,
+		ScreenWidth:  120,
+		ScreenHeight: 40,
+	}
+	ctx.Theme = theme.ParseTheme(ctx.Config)
+	ctx.Styles = context.InitStyles(ctx.Theme)
+
+	m := Model{
+		ctx:              ctx,
+		keys:             keys.Keys,
+		sidebar:          sidebar.NewModel(),
+		footer:           footer.NewModel(ctx),
+		tabs:             tabs.NewModel(ctx),
+		prView:           prview.NewModel(ctx),
+		issueSidebar:     issueview.NewModel(ctx),
+		branchSidebar:    branchsidebar.NewModel(ctx),
+		notificationView: notificationview.NewModel(ctx),
+	}
+	m.footer.ShowAll = true
+	require.Contains(t, m.footer.View(), "q/?")
+	require.Contains(t, m.footer.View(), "close help")
+
+	updated, cmd := m.Update(tea.KeyPressMsg{Text: "q"})
+	updatedModel := updated.(Model)
+
+	require.Nil(t, cmd)
+	require.False(t, updatedModel.footer.ShowAll)
+}
+
 // executeCommandTemplate mimics the template execution logic from runCustomCommand
 // to allow testing template variable substitution without executing shell commands.
 func executeCommandTemplate(
@@ -1275,6 +1313,14 @@ func TestPRInputFocusedPageKeysScrollSidebar(t *testing.T) {
 	newModel, _ = m.Update(tea.KeyPressMsg{Text: "ctrl+down"})
 	m = newModel.(Model)
 	require.Greater(t, m.sidebar.YOffset(), initialOffset)
+
+	newModel, _ = m.Update(tea.KeyPressMsg{Text: "ctrl+h"})
+	m = newModel.(Model)
+	require.Equal(t, 0, m.sidebar.YOffset())
+
+	newModel, _ = m.Update(tea.KeyPressMsg{Text: "ctrl+g"})
+	m = newModel.(Model)
+	require.Greater(t, m.sidebar.YOffset(), 0)
 }
 
 func TestOpenPRCommentInputNoScrollPreservesSidebarOffset(t *testing.T) {
@@ -1985,79 +2031,12 @@ func TestRefresh_ClearsEnrichmentCache(t *testing.T) {
 	require.True(t, data.IsEnrichmentCacheCleared(), "cache should start cleared")
 
 	// Send refresh key - this should call data.ClearEnrichmentCache()
-	msg := tea.KeyPressMsg{Text: "r"}
+	msg := tea.KeyPressMsg{Text: "R"}
 	_, _ = m.Update(msg)
 
 	// Verify cache is still cleared (ClearEnrichmentCache was called)
 	require.True(t, data.IsEnrichmentCacheCleared(),
 		"cache should be cleared after refresh key press")
-}
-
-func TestRefreshAll_ClearsEnrichmentCache(t *testing.T) {
-	// This test verifies that pressing the refresh all key ('R') also
-	// clears the enrichment cache. The cache clearing happens at the start
-	// of the handler, before fetchAllViewSections.
-	cfg, err := config.ParseConfig(config.Location{
-		ConfigFlag: "../config/testdata/test-config.yml",
-	})
-	require.NoError(t, err)
-
-	ctx := &context.ProgramContext{
-		Config:    &cfg,
-		View:      config.PRsView,
-		StartTask: func(task context.Task) tea.Cmd { return nil },
-	}
-	ctx.Theme = theme.ParseTheme(ctx.Config)
-	ctx.Styles = context.InitStyles(ctx.Theme)
-
-	// Create a PR section for proper setup
-	prSection := prssection.NewModel(
-		0,
-		ctx,
-		config.PrsSectionConfig{
-			Title:   "Test",
-			Filters: "is:open",
-		},
-		time.Now(),
-		time.Now(),
-	)
-
-	m := Model{
-		ctx:              ctx,
-		keys:             keys.Keys,
-		prs:              []section.Section{&prSection},
-		sidebar:          sidebar.NewModel(),
-		footer:           footer.NewModel(ctx),
-		tabs:             tabs.NewModel(ctx),
-		prView:           prview.NewModel(ctx),
-		issueSidebar:     issueview.NewModel(ctx),
-		branchSidebar:    branchsidebar.NewModel(ctx),
-		notificationView: notificationview.NewModel(ctx),
-	}
-
-	// Reset to known state
-	data.SetClient(nil)
-	require.True(t, data.IsEnrichmentCacheCleared(), "cache should start cleared")
-
-	// Send refresh all key - ClearEnrichmentCache is called at the start
-	// of the handler, before fetchAllViewSections. We use recover to handle
-	// any panics from incomplete test setup while still verifying cache behavior.
-	msg := tea.KeyPressMsg{Text: "R"}
-	func() {
-		defer func() {
-			if r := recover(); r != nil {
-				// Panic is expected due to incomplete test setup.
-				// The important thing is that ClearEnrichmentCache was called
-				// before the panic occurred (it's the first line in the handler).
-				t.Logf("Recovered from expected panic in fetchAllViewSections: %v", r)
-			}
-		}()
-		_, _ = m.Update(msg)
-	}()
-
-	// Verify cache is cleared - this is the key assertion
-	require.True(t, data.IsEnrichmentCacheCleared(),
-		"cache should be cleared after refresh all key press")
 }
 
 func TestPromptConfirmationForNotificationPR_ApproveWorkflows(t *testing.T) {

@@ -36,10 +36,11 @@ type KeyMap struct {
 	CyclePreview key.Binding
 	OpenGithub   key.Binding
 	Refresh      key.Binding
-	RefreshAll   key.Binding
 	Redraw       key.Binding
 	PageDown     key.Binding
 	PageUp       key.Binding
+	PreviewTop   key.Binding
+	PreviewBottom key.Binding
 	NextView     key.Binding
 	PrevView     key.Binding
 	NextSection  key.Binding
@@ -155,6 +156,8 @@ func (k KeyMap) NavigationKeys() []key.Binding {
 		k.LastLine,
 		k.PageDown,
 		k.PageUp,
+		k.PreviewTop,
+		k.PreviewBottom,
 		k.NextView,
 		k.PrevView,
 	}
@@ -163,7 +166,6 @@ func (k KeyMap) NavigationKeys() []key.Binding {
 func (k KeyMap) AppKeys() []key.Binding {
 	return []key.Binding{
 		k.Refresh,
-		k.RefreshAll,
 		k.CyclePreview,
 		k.OpenGithub,
 		k.CopyNumber,
@@ -187,12 +189,12 @@ var Keys = &KeyMap{
 		key.WithHelp("↓/j", "move down"),
 	),
 	FirstLine: key.NewBinding(
-		key.WithKeys("g", "home"),
-		key.WithHelp("g/home", "first item"),
+		key.WithKeys("h", "home"),
+		key.WithHelp("h/home", "first item"),
 	),
 	LastLine: key.NewBinding(
-		key.WithKeys("G", "end"),
-		key.WithHelp("G/end", "last item"),
+		key.WithKeys("g", "end"),
+		key.WithHelp("g/end", "last item"),
 	),
 	CyclePreview: key.NewBinding(
 		key.WithKeys("p"),
@@ -203,12 +205,8 @@ var Keys = &KeyMap{
 		key.WithHelp("o", "open in GitHub"),
 	),
 	Refresh: key.NewBinding(
-		key.WithKeys("r"),
-		key.WithHelp("r", "refresh"),
-	),
-	RefreshAll: key.NewBinding(
 		key.WithKeys("R"),
-		key.WithHelp("R", "refresh all"),
+		key.WithHelp("R", "refresh"),
 	),
 	PageDown: key.NewBinding(
 		key.WithKeys("ctrl+down"),
@@ -217,6 +215,14 @@ var Keys = &KeyMap{
 	PageUp: key.NewBinding(
 		key.WithKeys("ctrl+up"),
 		key.WithHelp("Ctrl+↑", "preview page up"),
+	),
+	PreviewTop: key.NewBinding(
+		key.WithKeys("ctrl+h"),
+		key.WithHelp("Ctrl+h", "preview top"),
+	),
+	PreviewBottom: key.NewBinding(
+		key.WithKeys("ctrl+g"),
+		key.WithHelp("Ctrl+g", "preview bottom"),
 	),
 	NextView: key.NewBinding(
 		key.WithKeys("ctrl+shift+right"),
@@ -337,14 +343,16 @@ func rebindUniversal(universal []config.Keybinding) error {
 			key = &Keys.OpenGithub
 		case "refresh":
 			key = &Keys.Refresh
-		case "refreshAll":
-			key = &Keys.RefreshAll
 		case "redraw":
 			key = &Keys.Redraw
 		case "pageDown":
 			key = &Keys.PageDown
 		case "pageUp":
 			key = &Keys.PageUp
+		case "previewTop":
+			key = &Keys.PreviewTop
+		case "previewBottom":
+			key = &Keys.PreviewBottom
 		case "nextView":
 			key = &Keys.NextView
 		case "prevView":

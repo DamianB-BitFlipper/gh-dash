@@ -91,6 +91,7 @@ const (
 	// Prompts
 	AssignPrompt        = "Assign users (whitespace-separated)" + Ellipsis
 	EditAssigneesPrompt = "Edit assignees (whitespace-separated)" + Ellipsis
+	RequestReviewPrompt = "Request reviews (whitespace-separated)" + Ellipsis
 	UnassignPrompt      = "Unassign users (whitespace-separated)" + Ellipsis
 	CommentPrompt       = "Leave a comment" + Ellipsis
 	ThreadCommentPrompt = "Reply to thread" + Ellipsis

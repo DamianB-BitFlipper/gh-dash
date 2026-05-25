@@ -65,6 +65,36 @@ func TestAssignPR_UpdateMessage(t *testing.T) {
 	require.Equal(t, "bob", msg.RemovedAssignees.Nodes[0].Login)
 }
 
+func TestRequestReviewPR_TaskConfiguration(t *testing.T) {
+	section := SectionIdentifier{Id: 2, Type: "pr"}
+	pr := mockIssue{
+		number:   42,
+		repoName: "owner/repo",
+	}
+
+	task := buildRequestReviewPRTask(section, pr, []string{"alice"}, []string{"bob"})
+
+	require.Equal(t, "pr_request_review_42", task.Id)
+	require.Equal(t, []string{
+		"pr", "edit", "42", "-R", "owner/repo",
+		"--add-reviewer", "alice",
+		"--remove-reviewer", "bob",
+	}, task.Args)
+	require.Equal(t, section, task.Section)
+	require.Equal(t, "Updating review requests for pr #42", task.StartText)
+	require.Equal(t, "Review requests for pr #42 have been updated", task.FinishedText)
+}
+
+func TestRequestReviewPR_UpdateMessage(t *testing.T) {
+	pr := mockIssue{number: 42, repoName: "owner/repo"}
+	task := buildRequestReviewPRTask(SectionIdentifier{Id: 2, Type: "pr"}, pr, []string{"alice"}, []string{"bob"})
+	msg := task.Msg(&exec.Cmd{}, nil).(UpdatePRMsg)
+
+	require.Equal(t, 42, msg.PrNumber)
+	require.Equal(t, "alice", msg.AddedReviewers.Nodes[0].GetReviewerDisplayName())
+	require.Equal(t, "bob", msg.RemovedReviewers.Nodes[0].GetReviewerDisplayName())
+}
+
 func TestTogglePRDraft_TaskConfiguration(t *testing.T) {
 	tests := []struct {
 		name         string

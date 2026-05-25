@@ -25,6 +25,7 @@ const (
 	ModeThreadComment
 	ModeApprove
 	ModeAssign
+	ModeRequestReview
 	ModeUnassign
 	ModeLabel
 	ModeSearch

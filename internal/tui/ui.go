@@ -219,7 +219,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if m.prView.IsTextInputBoxFocused() {
-			if key.Matches(msg, keys.Keys.PageUp) || key.Matches(msg, keys.Keys.PageDown) {
+			if key.Matches(msg, keys.Keys.PageUp) || key.Matches(msg, keys.Keys.PageDown) ||
+				key.Matches(msg, keys.Keys.PreviewTop) || key.Matches(msg, keys.Keys.PreviewBottom) {
 				m.sidebar, sidebarCmd = m.sidebar.Update(msg)
 				return m, sidebarCmd
 			}
@@ -229,7 +230,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if m.issueSidebar.IsTextInputBoxFocused() {
-			if key.Matches(msg, keys.Keys.PageUp) || key.Matches(msg, keys.Keys.PageDown) {
+			if key.Matches(msg, keys.Keys.PageUp) || key.Matches(msg, keys.Keys.PageDown) ||
+				key.Matches(msg, keys.Keys.PreviewTop) || key.Matches(msg, keys.Keys.PreviewBottom) {
 				m.sidebar, sidebarCmd = m.sidebar.Update(msg)
 				return m, sidebarCmd
 			}
@@ -242,6 +244,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		} else if m.footer.ShowConfirmQuit {
 			m.footer.SetShowConfirmQuit(false)
+			return m, nil
+		}
+
+		if m.footer.ShowAll && msg.String() == "q" {
+			m.footer.ShowAll = false
+			m.syncMainContentDimensions()
 			return m, nil
 		}
 
@@ -326,12 +334,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				currSection.SetIsLoading(true)
 				cmds = append(cmds, currSection.FetchNextPageSectionRows()...)
 			}
-
-		case key.Matches(msg, m.keys.RefreshAll):
-			data.ClearEnrichmentCache()
-			newSections, fetchSectionsCmds := m.fetchAllViewSections()
-			m.setCurrentViewSections(newSections)
-			cmds = append(cmds, fetchSectionsCmds)
 
 		case key.Matches(msg, m.keys.Redraw):
 		// TODO: this doesn't exist in bubbletea v2
@@ -464,6 +466,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			case key.Matches(msg, keys.PRKeys.Assign):
 				return m, m.openSidebarForPRInput(m.prView.SetIsAssigning)
+
+			case key.Matches(msg, keys.PRKeys.RequestReview):
+				return m, m.openSidebarForPRInput(m.prView.SetIsRequestingReview)
 
 			case key.Matches(msg, keys.PRKeys.Label):
 				return m, m.openSidebarForPRInput(m.prView.SetIsLabeling)
@@ -840,6 +845,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if prMsg.IsDraft != nil {
 						pr.Primary.IsDraft = *prMsg.IsDraft
 						pr.Enriched.IsDraft = *prMsg.IsDraft
+					}
+					if prMsg.AddedReviewers != nil {
+						pr.Primary.ReviewRequests.Nodes = addReviewRequestsForNotificationPR(
+							pr.Primary.ReviewRequests.Nodes, prMsg.AddedReviewers.Nodes,
+						)
+						pr.Enriched.ReviewRequests.Nodes = addReviewRequestsForNotificationPR(
+							pr.Enriched.ReviewRequests.Nodes, prMsg.AddedReviewers.Nodes,
+						)
+					}
+					if prMsg.RemovedReviewers != nil {
+						pr.Primary.ReviewRequests.Nodes = removeReviewRequestsForNotificationPR(
+							pr.Primary.ReviewRequests.Nodes, prMsg.RemovedReviewers.Nodes,
+						)
+						pr.Enriched.ReviewRequests.Nodes = removeReviewRequestsForNotificationPR(
+							pr.Enriched.ReviewRequests.Nodes, prMsg.RemovedReviewers.Nodes,
+						)
 					}
 					if prMsg.ThreadReply != nil {
 						for i := range pr.Enriched.ReviewThreads.Nodes {
@@ -1634,6 +1655,44 @@ func (m *Model) syncSidebar() tea.Cmd {
 	}
 
 	return cmd
+}
+
+func addReviewRequestsForNotificationPR(
+	reviewRequests, addedReviewRequests []data.ReviewRequestNode,
+) []data.ReviewRequestNode {
+	newReviewRequests := reviewRequests
+	for _, reviewer := range addedReviewRequests {
+		if !reviewRequestsContainReviewer(newReviewRequests, reviewer) {
+			newReviewRequests = append(newReviewRequests, reviewer)
+		}
+	}
+
+	return newReviewRequests
+}
+
+func removeReviewRequestsForNotificationPR(
+	reviewRequests, removedReviewRequests []data.ReviewRequestNode,
+) []data.ReviewRequestNode {
+	newReviewRequests := []data.ReviewRequestNode{}
+	for _, reviewer := range reviewRequests {
+		if !reviewRequestsContainReviewer(removedReviewRequests, reviewer) {
+			newReviewRequests = append(newReviewRequests, reviewer)
+		}
+	}
+
+	return newReviewRequests
+}
+
+func reviewRequestsContainReviewer(
+	reviewRequests []data.ReviewRequestNode,
+	reviewer data.ReviewRequestNode,
+) bool {
+	for _, reviewRequest := range reviewRequests {
+		if reviewRequest.GetReviewerDisplayName() == reviewer.GetReviewerDisplayName() {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Model) setPRSidebarContent() {

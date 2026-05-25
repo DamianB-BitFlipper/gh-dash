@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	bbHelp "charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/compat"
 
@@ -84,7 +85,7 @@ func (m Model) View() string {
 
 	if m.ShowAll {
 		keymap := keys.CreateKeyMapForView(m.ctx.View)
-		fullHelp := m.help.View(keymap)
+		fullHelp := m.help.View(closeHelpKeyMap{KeyMap: keymap})
 		return lipgloss.JoinVertical(lipgloss.Top, footer, fullHelp)
 	}
 
@@ -102,6 +103,29 @@ func (m *Model) SetWidth(width int) {
 func (m *Model) UpdateProgramContext(ctx *context.ProgramContext) {
 	m.ctx = ctx
 	m.help.Styles = ctx.Styles.Help.BubbleStyles
+}
+
+type closeHelpKeyMap struct {
+	bbHelp.KeyMap
+}
+
+func (k closeHelpKeyMap) FullHelp() [][]key.Binding {
+	groups := k.KeyMap.FullHelp()
+	closeHelp := key.NewBinding(
+		key.WithKeys("q", "?"),
+		key.WithHelp("q/?", "close help"),
+	)
+
+	for i := range groups {
+		for j := range groups[i] {
+			if groups[i][j].Help().Desc == "help" {
+				groups[i][j] = closeHelp
+				return groups
+			}
+		}
+	}
+
+	return append(groups, []key.Binding{closeHelp})
 }
 
 func (m *Model) renderViewButton(view config.ViewType) string {

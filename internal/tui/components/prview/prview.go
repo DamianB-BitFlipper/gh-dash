@@ -121,6 +121,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 			return m, nil
 
+		case cmpcontroller.ModeRequestReview:
+			added, removed := m.reviewerChanges(fuzzyselect.AllWords(value))
+			if len(added) > 0 || len(removed) > 0 {
+				return m, tasks.RequestReviewPR(m.ctx, sid, m.pr.Data.Primary, added, removed)
+			}
+			return m, nil
+
 		case cmpcontroller.ModeLabel:
 			labels := fuzzyselect.CurrentLabels(value)
 			if len(labels) > 0 || len(m.pr.Data.Primary.Labels.Nodes) > 0 {
@@ -800,6 +807,35 @@ func (m *Model) SetIsAssigning(isAssigning bool) tea.Cmd {
 	return cmd
 }
 
+func (m *Model) GetIsRequestingReview() bool {
+	return m.editor.Mode() == cmpcontroller.ModeRequestReview
+}
+
+func (m *Model) SetIsRequestingReview(isRequestingReview bool) tea.Cmd {
+	if m.pr == nil {
+		return nil
+	}
+
+	if !isRequestingReview {
+		if m.editor.Mode() == cmpcontroller.ModeRequestReview {
+			m.editor.Exit()
+		}
+		return nil
+	}
+
+	m.editor.SetAutocompleteSource(&fuzzyselect.UserMentionSource{WithAtSymbol: false})
+	cmd := m.editor.Enter(cmpcontroller.EnterOptions{
+		Mode:                             cmpcontroller.ModeRequestReview,
+		Prompt:                           constants.RequestReviewPrompt,
+		InitialValue:                     strings.Join(m.prReviewers(), "\n"),
+		Repo:                             m.repoRef(),
+		EnterFetch:                       cmpcontroller.FetchSilent,
+		HideAutocompleteWhenContextEmpty: false,
+	})
+	m.editor.ShowCompletions()
+	return cmd
+}
+
 func (m *Model) prAssignees() []string {
 	var assignees []string
 	for _, n := range m.pr.Data.Primary.Assignees.Nodes {
@@ -808,9 +844,27 @@ func (m *Model) prAssignees() []string {
 	return assignees
 }
 
+func (m *Model) prReviewers() []string {
+	var reviewers []string
+	for _, n := range m.pr.Data.Primary.ReviewRequests.Nodes {
+		if reviewer := n.GetReviewerDisplayName(); reviewer != "" {
+			reviewers = append(reviewers, reviewer)
+		}
+	}
+	return reviewers
+}
+
 func (m *Model) assigneeChanges(next []string) ([]string, []string) {
+	return stringListChanges(m.prAssignees(), next)
+}
+
+func (m *Model) reviewerChanges(next []string) ([]string, []string) {
+	return stringListChanges(m.prReviewers(), next)
+}
+
+func stringListChanges(currentItems []string, next []string) ([]string, []string) {
 	current := map[string]bool{}
-	for _, login := range m.prAssignees() {
+	for _, login := range currentItems {
 		current[login] = true
 	}
 
@@ -827,7 +881,7 @@ func (m *Model) assigneeChanges(next []string) ([]string, []string) {
 	}
 
 	removed := []string{}
-	for _, login := range m.prAssignees() {
+	for _, login := range currentItems {
 		if !nextSet[login] {
 			removed = append(removed, login)
 		}

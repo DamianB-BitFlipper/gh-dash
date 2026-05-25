@@ -14,6 +14,7 @@ const (
 	PRActionNone PRActionType = iota
 	PRActionApprove
 	PRActionAssign
+	PRActionRequestReview
 	PRActionLabel
 	PRActionComment
 	PRActionDiff
@@ -47,6 +48,8 @@ func MsgToAction(msg tea.Msg) *PRAction {
 		return &PRAction{Type: PRActionApprove}
 	case key.Matches(keyMsg, keys.PRKeys.Assign):
 		return &PRAction{Type: PRActionAssign}
+	case key.Matches(keyMsg, keys.PRKeys.RequestReview):
+		return &PRAction{Type: PRActionRequestReview}
 	case key.Matches(keyMsg, keys.PRKeys.Label):
 		return &PRAction{Type: PRActionLabel}
 	case key.Matches(keyMsg, keys.PRKeys.Comment):

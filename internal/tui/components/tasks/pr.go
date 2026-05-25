@@ -31,6 +31,8 @@ type UpdatePRMsg struct {
 	IsMerged         *bool
 	AddedAssignees   *data.Assignees
 	RemovedAssignees *data.Assignees
+	AddedReviewers   *data.ReviewRequests
+	RemovedReviewers *data.ReviewRequests
 	Labels           *data.PRLabels
 }
 
@@ -404,6 +406,66 @@ func buildAssignPRTask(
 			}
 		},
 	}
+}
+
+func RequestReviewPR(
+	ctx *context.ProgramContext,
+	section SectionIdentifier,
+	pr data.RowData,
+	added []string,
+	removed []string,
+) tea.Cmd {
+	return fireTask(ctx, buildRequestReviewPRTask(section, pr, added, removed))
+}
+
+func buildRequestReviewPRTask(
+	section SectionIdentifier,
+	pr data.RowData,
+	added []string,
+	removed []string,
+) GitHubTask {
+	prNumber := pr.GetNumber()
+	args := []string{
+		"pr",
+		"edit",
+		fmt.Sprint(prNumber),
+		"-R",
+		pr.GetRepoNameWithOwner(),
+	}
+	for _, reviewer := range added {
+		args = append(args, "--add-reviewer", reviewer)
+	}
+	for _, reviewer := range removed {
+		args = append(args, "--remove-reviewer", reviewer)
+	}
+	return GitHubTask{
+		Id:           buildTaskId("pr_request_review", prNumber),
+		Args:         args,
+		Section:      section,
+		StartText:    fmt.Sprintf("Updating review requests for pr #%d", prNumber),
+		FinishedText: fmt.Sprintf("Review requests for pr #%d have been updated", prNumber),
+		Msg: func(c *exec.Cmd, err error) tea.Msg {
+			addedReviewers := data.ReviewRequests{Nodes: []data.ReviewRequestNode{}}
+			for _, reviewer := range added {
+				addedReviewers.Nodes = append(addedReviewers.Nodes, newUserReviewRequest(reviewer))
+			}
+			removedReviewers := data.ReviewRequests{Nodes: []data.ReviewRequestNode{}}
+			for _, reviewer := range removed {
+				removedReviewers.Nodes = append(removedReviewers.Nodes, newUserReviewRequest(reviewer))
+			}
+			return UpdatePRMsg{
+				PrNumber:         prNumber,
+				AddedReviewers:   &addedReviewers,
+				RemovedReviewers: &removedReviewers,
+			}
+		},
+	}
+}
+
+func newUserReviewRequest(login string) data.ReviewRequestNode {
+	var req data.ReviewRequestNode
+	req.RequestedReviewer.User.Login = login
+	return req
 }
 
 func CommentOnPR(

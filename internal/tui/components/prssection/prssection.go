@@ -260,6 +260,26 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 					currPr.Primary.Assignees.Nodes, msg.RemovedAssignees.Nodes,
 				)
 			}
+			if msg.AddedReviewers != nil {
+				currPr.Primary.ReviewRequests.Nodes = addReviewRequests(
+					currPr.Primary.ReviewRequests.Nodes, msg.AddedReviewers.Nodes,
+				)
+				if currPr.IsEnriched {
+					currPr.Enriched.ReviewRequests.Nodes = addReviewRequests(
+						currPr.Enriched.ReviewRequests.Nodes, msg.AddedReviewers.Nodes,
+					)
+				}
+			}
+			if msg.RemovedReviewers != nil {
+				currPr.Primary.ReviewRequests.Nodes = removeReviewRequests(
+					currPr.Primary.ReviewRequests.Nodes, msg.RemovedReviewers.Nodes,
+				)
+				if currPr.IsEnriched {
+					currPr.Enriched.ReviewRequests.Nodes = removeReviewRequests(
+						currPr.Enriched.ReviewRequests.Nodes, msg.RemovedReviewers.Nodes,
+					)
+				}
+			}
 			if msg.Labels != nil {
 				currPr.Primary.Labels.Nodes = msg.Labels.Nodes
 			}
@@ -861,6 +881,41 @@ func removeAssignees(
 
 func assigneesContains(assignees []data.Assignee, assignee data.Assignee) bool {
 	return slices.Contains(assignees, assignee)
+}
+
+func addReviewRequests(
+	reviewRequests, addedReviewRequests []data.ReviewRequestNode,
+) []data.ReviewRequestNode {
+	newReviewRequests := reviewRequests
+	for _, reviewer := range addedReviewRequests {
+		if !reviewRequestsContains(newReviewRequests, reviewer) {
+			newReviewRequests = append(newReviewRequests, reviewer)
+		}
+	}
+
+	return newReviewRequests
+}
+
+func removeReviewRequests(
+	reviewRequests, removedReviewRequests []data.ReviewRequestNode,
+) []data.ReviewRequestNode {
+	newReviewRequests := []data.ReviewRequestNode{}
+	for _, reviewer := range reviewRequests {
+		if !reviewRequestsContains(removedReviewRequests, reviewer) {
+			newReviewRequests = append(newReviewRequests, reviewer)
+		}
+	}
+
+	return newReviewRequests
+}
+
+func reviewRequestsContains(reviewRequests []data.ReviewRequestNode, reviewer data.ReviewRequestNode) bool {
+	for _, reviewRequest := range reviewRequests {
+		if reviewRequest.GetReviewerDisplayName() == reviewer.GetReviewerDisplayName() {
+			return true
+		}
+	}
+	return false
 }
 
 func (m Model) GetItemSingularForm() string {

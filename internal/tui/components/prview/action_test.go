@@ -50,6 +50,7 @@ func TestMsgToActionReturnsCorrectActions(t *testing.T) {
 	}{
 		{"approve key", 'v', PRActionApprove},
 		{"assign key", 'a', PRActionAssign},
+		{"request review key", 'r', PRActionRequestReview},
 		{"comment key", 'c', PRActionComment},
 		{"diff key", 'd', PRActionDiff},
 		{"checkout key C", 'C', PRActionCheckout},
@@ -126,6 +127,18 @@ func TestIsTextInputBoxFocusedWhenAssigning(t *testing.T) {
 		t,
 		m.IsTextInputBoxFocused(),
 		"expected text input box focused when in assigning mode",
+	)
+}
+
+func TestIsTextInputBoxFocusedWhenRequestingReview(t *testing.T) {
+	m := newTestModelForAction(t)
+	cmd := m.SetIsRequestingReview(true)
+
+	require.NotNil(t, cmd)
+	require.True(
+		t,
+		m.IsTextInputBoxFocused(),
+		"expected text input box focused when requesting review",
 	)
 }
 
