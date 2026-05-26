@@ -964,40 +964,39 @@ func (m *model) viewLogs() string {
 }
 
 func (m *model) setFocusedPaneStyles() {
+	// Keep checks and steps delegates always "focused" so their selected
+	// item is rendered with the blue background highlight regardless of
+	// which pane currently has focus. Pane focus is conveyed by the pane
+	// title pill color.
+	m.checksDelegate.(*checksDelegate).focused = true
+	m.stepsDelegate.(*stepsDelegate).focused = true
+
 	switch m.focusedPane {
 	case PaneChecks:
-		m.checksDelegate.(*checksDelegate).focused = true
-		m.stepsDelegate.(*stepsDelegate).focused = false
 		m.setListFocusedStyles(&m.checksList, &m.checksDelegate, PaneChecks)
 		m.setListUnfocusedStyles(&m.stepsList, &m.stepsDelegate)
 	case PaneRuns:
 		m.runsDelegate.(*runsDelegate).focused = true
 		m.jobsDelegate.(*jobsDelegate).focused = false
-		m.stepsDelegate.(*stepsDelegate).focused = false
 		m.setListFocusedStyles(&m.runsList, &m.runsDelegate, PaneRuns)
 		m.setListUnfocusedStyles(&m.jobsList, &m.jobsDelegate)
 		m.setListUnfocusedStyles(&m.stepsList, &m.stepsDelegate)
 	case PaneJobs:
 		m.runsDelegate.(*runsDelegate).focused = false
 		m.jobsDelegate.(*jobsDelegate).focused = true
-		m.stepsDelegate.(*stepsDelegate).focused = false
 		m.setListUnfocusedStyles(&m.runsList, &m.runsDelegate)
 		m.setListFocusedStyles(&m.jobsList, &m.jobsDelegate, PaneJobs)
 		m.setListUnfocusedStyles(&m.stepsList, &m.stepsDelegate)
 	case PaneSteps:
-		m.checksDelegate.(*checksDelegate).focused = false
 		m.runsDelegate.(*runsDelegate).focused = false
 		m.jobsDelegate.(*jobsDelegate).focused = false
-		m.stepsDelegate.(*stepsDelegate).focused = true
 		m.setListUnfocusedStyles(&m.checksList, &m.checksDelegate)
 		m.setListUnfocusedStyles(&m.runsList, &m.runsDelegate)
 		m.setListUnfocusedStyles(&m.jobsList, &m.jobsDelegate)
 		m.setListFocusedStyles(&m.stepsList, &m.stepsDelegate, PaneSteps)
 	case PaneLogs:
-		m.checksDelegate.(*checksDelegate).focused = false
 		m.runsDelegate.(*runsDelegate).focused = false
 		m.jobsDelegate.(*jobsDelegate).focused = false
-		m.stepsDelegate.(*stepsDelegate).focused = false
 		m.setListUnfocusedStyles(&m.checksList, &m.checksDelegate)
 		m.setListUnfocusedStyles(&m.runsList, &m.runsDelegate)
 		m.setListUnfocusedStyles(&m.jobsList, &m.jobsDelegate)
