@@ -256,8 +256,8 @@ func TestNotificationPRHelpUsesPRPreviewContext(t *testing.T) {
 }
 
 func TestDefaultArrowKeybindings(t *testing.T) {
-	requireKeys(t, Keys.Up, "up", "k")
-	requireKeys(t, Keys.Down, "down", "j")
+	requireKeys(t, Keys.Up, "up")
+	requireKeys(t, Keys.Down, "down")
 	requireKeys(t, Keys.FirstLine, "<", "home")
 	requireKeys(t, Keys.LastLine, ">", "end")
 	requireKeys(t, Keys.PrevSection, "[")
@@ -274,6 +274,8 @@ func TestDefaultArrowKeybindings(t *testing.T) {
 	requireKeys(t, PRKeys.NextSidebarTab, "right")
 	requireKeys(t, PRKeys.PrevReviewThread, ",")
 	requireKeys(t, PRKeys.NextReviewThread, ".")
+	requireKeys(t, PRKeys.PrevStep, "ctrl+,")
+	requireKeys(t, PRKeys.NextStep, "ctrl+.")
 	requireKeys(t, Keys.Refresh, "R")
 	requireKeys(t, PRKeys.RequestReview, "r")
 	requireKeys(t, PRKeys.SortOrder, "S")

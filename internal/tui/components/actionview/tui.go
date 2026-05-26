@@ -287,6 +287,34 @@ func (m *Model) selectCheck(delta int) (bool, tea.Cmd) {
 	return true, tea.Batch(cmds...)
 }
 
+func (m *Model) SelectPrevStep() (bool, tea.Cmd) {
+	return m.selectStep(-1)
+}
+
+func (m *Model) SelectNextStep() (bool, tea.Cmd) {
+	return m.selectStep(1)
+}
+
+func (m *Model) selectStep(delta int) (bool, tea.Cmd) {
+	if len(m.stepsList.Items()) == 0 {
+		return false, nil
+	}
+
+	before := m.stepsList.GlobalIndex()
+	if delta < 0 {
+		m.stepsList.CursorUp()
+	} else {
+		m.stepsList.CursorDown()
+	}
+	after := m.stepsList.GlobalIndex()
+	if before == after {
+		return false, nil
+	}
+
+	m.onStepChanged()
+	return true, nil
+}
+
 func HandlesAsyncMsg(msg tea.Msg) bool {
 	switch msg.(type) {
 	// NOTE: spinner.TickMsg is intentionally NOT included here. spinner.TickMsg
@@ -1047,6 +1075,8 @@ func newList(styles styles, delegate list.ItemDelegate) list.Model {
 	l.SetSpinner(spinner.Dot)
 	l.KeyMap.NextPage = key.Binding{}
 	l.KeyMap.PrevPage = key.Binding{}
+	l.KeyMap.CursorUp = key.NewBinding(key.WithKeys("up"), key.WithHelp("↑", "up"))
+	l.KeyMap.CursorDown = key.NewBinding(key.WithKeys("down"), key.WithHelp("↓", "down"))
 	l.StartSpinner()
 	l.SetShowHelp(false)
 	l.SetShowStatusBar(false)

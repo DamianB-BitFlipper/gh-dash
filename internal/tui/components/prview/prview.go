@@ -677,6 +677,20 @@ func (m *Model) FocusNextCheck() (bool, tea.Cmd) {
 	return m.actionChecks.SelectNextCheck()
 }
 
+func (m *Model) FocusPrevStep() (bool, tea.Cmd) {
+	if !m.IsChecksTab() || m.actionChecks == nil {
+		return false, nil
+	}
+	return m.actionChecks.SelectPrevStep()
+}
+
+func (m *Model) FocusNextStep() (bool, tea.Cmd) {
+	if !m.IsChecksTab() || m.actionChecks == nil {
+		return false, nil
+	}
+	return m.actionChecks.SelectNextStep()
+}
+
 func (m *Model) FocusChecksLogsSearch() tea.Cmd {
 	if !m.IsChecksTab() || m.actionChecks == nil {
 		return nil

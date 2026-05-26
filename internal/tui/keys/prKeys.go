@@ -30,6 +30,8 @@ type PRKeyMap struct {
 	ApproveWorkflows     key.Binding
 	PrevReviewThread     key.Binding
 	NextReviewThread     key.Binding
+	PrevStep             key.Binding
+	NextStep             key.Binding
 	ToggleReviewThread   key.Binding
 	ToggleSmartFiltering key.Binding
 	SortOrder            key.Binding
@@ -116,6 +118,14 @@ var PRKeys = PRKeyMap{
 		key.WithKeys("."),
 		key.WithHelp(".", "next review thread"),
 	),
+	PrevStep: key.NewBinding(
+		key.WithKeys("ctrl+,"),
+		key.WithHelp("ctrl+,", "previous step"),
+	),
+	NextStep: key.NewBinding(
+		key.WithKeys("ctrl+."),
+		key.WithHelp("ctrl+.", "next step"),
+	),
 	ToggleReviewThread: key.NewBinding(
 		key.WithKeys("z"),
 		key.WithHelp("z", "resolve/unresolve thread"),
@@ -156,6 +166,14 @@ func PRFullHelp() []key.Binding {
 			key.NewBinding(
 				key.WithKeys(PRKeys.NextReviewThread.Keys()...),
 				key.WithHelp(PRKeys.NextReviewThread.Help().Key, "next check"),
+			),
+			key.NewBinding(
+				key.WithKeys(PRKeys.PrevStep.Keys()...),
+				key.WithHelp(PRKeys.PrevStep.Help().Key, "previous step"),
+			),
+			key.NewBinding(
+				key.WithKeys(PRKeys.NextStep.Keys()...),
+				key.WithHelp(PRKeys.NextStep.Help().Key, "next step"),
 			),
 		)
 	}
@@ -254,6 +272,10 @@ func rebindPRKeys(keys []config.Keybinding) error {
 			key = &PRKeys.PrevReviewThread
 		case "nextReviewThread":
 			key = &PRKeys.NextReviewThread
+		case "prevStep":
+			key = &PRKeys.PrevStep
+		case "nextStep":
+			key = &PRKeys.NextStep
 		case "toggleReviewThread":
 			key = &PRKeys.ToggleReviewThread
 		case "sortOrder":

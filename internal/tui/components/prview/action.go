@@ -28,6 +28,8 @@ const (
 	PRActionApproveWorkflows
 	PRActionPrevReviewThread
 	PRActionNextReviewThread
+	PRActionPrevStep
+	PRActionNextStep
 	PRActionToggleReviewThread
 )
 
@@ -76,6 +78,10 @@ func MsgToAction(msg tea.Msg) *PRAction {
 		return &PRAction{Type: PRActionPrevReviewThread}
 	case key.Matches(keyMsg, keys.PRKeys.NextReviewThread):
 		return &PRAction{Type: PRActionNextReviewThread}
+	case key.Matches(keyMsg, keys.PRKeys.PrevStep):
+		return &PRAction{Type: PRActionPrevStep}
+	case key.Matches(keyMsg, keys.PRKeys.NextStep):
+		return &PRAction{Type: PRActionNextStep}
 	case key.Matches(keyMsg, keys.PRKeys.ToggleReviewThread):
 		return &PRAction{Type: PRActionToggleReviewThread}
 	}

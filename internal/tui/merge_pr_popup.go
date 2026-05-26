@@ -59,9 +59,9 @@ func (m *Model) updateMergePRPopup(msg tea.KeyMsg) tea.Cmd {
 	switch msg.String() {
 	case "esc", "ctrl+c", "q":
 		m.mergePRPopup = nil
-	case "up", "k":
+	case "up":
 		m.mergePRPopup.move(-1)
-	case "down", "j":
+	case "down":
 		m.mergePRPopup.move(1)
 	case "m":
 		m.mergePRPopup.methodIndex = 0

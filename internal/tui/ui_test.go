@@ -1044,8 +1044,8 @@ func TestNavigationKeysWithNilSection(t *testing.T) {
 		name string
 		msg  tea.KeyPressMsg
 	}{
-		{"down", tea.KeyPressMsg{Text: "j"}},
-		{"up", tea.KeyPressMsg{Text: "k"}},
+		{"down", tea.KeyPressMsg{Code: tea.KeyDown}},
+		{"up", tea.KeyPressMsg{Code: tea.KeyUp}},
 		{"firstLine", tea.KeyPressMsg{Text: "g"}},
 		{"lastLine", tea.KeyPressMsg{Text: "G"}},
 		{"refresh", tea.KeyPressMsg{Text: "r"}},

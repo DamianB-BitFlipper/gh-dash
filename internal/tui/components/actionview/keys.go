@@ -23,13 +23,13 @@ var (
 	)
 
 	nextRowKey = key.NewBinding(
-		key.WithKeys("j", "down"),
-		key.WithHelp("j/↓", "next row"),
+		key.WithKeys("down"),
+		key.WithHelp("↓", "next row"),
 	)
 
 	prevRowKey = key.NewBinding(
-		key.WithKeys("k", "up"),
-		key.WithHelp("k/↑", "previous row"),
+		key.WithKeys("up"),
+		key.WithHelp("↑", "previous row"),
 	)
 
 	zoomPaneKey = key.NewBinding(

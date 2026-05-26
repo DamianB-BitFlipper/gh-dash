@@ -556,6 +556,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.syncSidebar()
 				return m, tea.Batch(prCmd)
 
+			case m.prView.IsChecksTab() && (key.Matches(msg, keys.PRKeys.PrevStep) ||
+				key.Matches(msg, keys.PRKeys.NextStep)):
+				var moved bool
+				var prCmd tea.Cmd
+				if key.Matches(msg, keys.PRKeys.PrevStep) {
+					moved, prCmd = m.prView.FocusPrevStep()
+				} else {
+					moved, prCmd = m.prView.FocusNextStep()
+				}
+				if !moved {
+					return m, nil
+				}
+				m.syncSidebar()
+				return m, tea.Batch(prCmd)
+
 			case key.Matches(msg, keys.PRKeys.ToggleReviewThread):
 				if !m.prView.IsActivityTab() {
 					return m, nil
@@ -841,6 +856,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							}
 							m.syncSidebar()
 							return m, nil
+
+						case prview.PRActionPrevStep, prview.PRActionNextStep:
+							if !m.prView.IsChecksTab() {
+								return m, nil
+							}
+							var moved bool
+							var prCmd tea.Cmd
+							if action.Type == prview.PRActionPrevStep {
+								moved, prCmd = m.prView.FocusPrevStep()
+							} else {
+								moved, prCmd = m.prView.FocusNextStep()
+							}
+							if !moved {
+								return m, nil
+							}
+							m.syncSidebar()
+							cmds = append(cmds, prCmd)
+							return m, tea.Batch(cmds...)
 						}
 					}
 				}

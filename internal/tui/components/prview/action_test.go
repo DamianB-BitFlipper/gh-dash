@@ -62,6 +62,8 @@ func TestMsgToActionReturnsCorrectActions(t *testing.T) {
 		{"approve workflows key", tea.KeyPressMsg{Code: 'V'}, PRActionApproveWorkflows},
 		{"previous review thread key", tea.KeyPressMsg{Code: ','}, PRActionPrevReviewThread},
 		{"next review thread key", tea.KeyPressMsg{Code: '.'}, PRActionNextReviewThread},
+		{"previous step key", tea.KeyPressMsg{Code: ',', Mod: tea.ModCtrl}, PRActionPrevStep},
+		{"next step key", tea.KeyPressMsg{Code: '.', Mod: tea.ModCtrl}, PRActionNextStep},
 		{"toggle review thread key", tea.KeyPressMsg{Code: 'z'}, PRActionToggleReviewThread},
 	}
 
@@ -192,6 +194,11 @@ func TestPRActionTypes(t *testing.T) {
 		PRActionUpdate,
 		PRActionSummaryViewMore,
 		PRActionApproveWorkflows,
+		PRActionPrevReviewThread,
+		PRActionNextReviewThread,
+		PRActionPrevStep,
+		PRActionNextStep,
+		PRActionToggleReviewThread,
 	}
 
 	seen := make(map[PRActionType]bool)
