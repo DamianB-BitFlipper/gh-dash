@@ -8,7 +8,6 @@ import (
 	bbHelp "charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
 	"charm.land/lipgloss/v2"
-	"charm.land/lipgloss/v2/compat"
 
 	"github.com/dlvhdr/gh-dash/v4/internal/config"
 	"github.com/dlvhdr/gh-dash/v4/internal/git"
@@ -161,14 +160,7 @@ func (m *Model) renderViewButton(view config.ViewType) string {
 
 	if isActive {
 		// Active: colored icon + prominent background
-		// Use gold for notifications bell, green for others
 		iconColor := m.ctx.Theme.SuccessText
-		if view == config.NotificationsView {
-			iconColor = compat.AdaptiveColor{
-				Light: lipgloss.Color("#B8860B"),
-				Dark:  lipgloss.Color("#FFD700"),
-			} // Gold
-		}
 		activeStyle := lipgloss.NewStyle().
 			Foreground(iconColor).
 			Background(m.ctx.Styles.ViewSwitcher.ActiveView.GetBackground()).

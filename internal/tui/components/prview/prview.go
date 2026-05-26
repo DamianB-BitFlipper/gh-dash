@@ -55,6 +55,12 @@ type Model struct {
 	// another view and back) restores the user's selected job/step,
 	// log scroll, search query, and zoom state for that PR.
 	actionChecksCache map[string]*actionview.Model
+	// previewFocused tracks whether the preview pane currently owns
+	// keyboard focus. Update consults this to decide whether to forward
+	// key messages into the embedded Checks tab's actionview. Non-key
+	// messages (resize, async fetches, log streaming) are always
+	// forwarded regardless of focus so background work stays current.
+	previewFocused bool
 }
 
 // actionChecksCacheLimit caps the number of cached Checks-tab actionview
@@ -174,13 +180,44 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 
 	if m.IsChecksTab() && m.actionChecks != nil {
-		var checksCmd tea.Cmd
-		checksModel, checksCmd := m.actionChecks.UpdateEmbedded(msg)
-		m.actionChecks = &checksModel
-		cmd = tea.Batch(cmd, checksCmd)
+		// actionview-local keys (up/down/h/l/g/G/etc.) must only reach
+		// the embedded actionview when the preview pane is focused.
+		// Otherwise the Checks pane silently consumes navigation keys
+		// meant for the PR row list. All other messages (non-local
+		// keys, logs-search typing, async fetches, resize, etc.) are
+		// forwarded unconditionally so the actionview's own gate
+		// (UpdateEmbedded) keeps owning the final decision and the
+		// logs-search input keeps receiving characters even when the
+		// preview pane isn't yet recorded as focused (parent routing
+		// reaches this path via IsChecksLogsSearchFocused).
+		forward := true
+		if keyMsg, ok := msg.(tea.KeyMsg); ok && actionview.IsLocalKey(keyMsg) && !m.previewFocused {
+			forward = false
+		}
+		if forward {
+			var checksCmd tea.Cmd
+			checksModel, checksCmd := m.actionChecks.UpdateEmbedded(msg)
+			m.actionChecks = &checksModel
+			cmd = tea.Batch(cmd, checksCmd)
+		}
 	}
 
 	return m, cmd
+}
+
+// SetPreviewFocused records whether the preview pane currently owns
+// keyboard focus. The parent TUI must call this whenever the active pane
+// or sidebar visibility changes; Update consults it to gate key-message
+// forwarding into the embedded Checks tab actionview.
+func (m *Model) SetPreviewFocused(focused bool) {
+	m.previewFocused = focused
+}
+
+// IsPreviewFocused reports the focus state previously set via
+// SetPreviewFocused. Exposed primarily for tests and parent-level
+// diagnostics; runtime gating consults the private field directly.
+func (m Model) IsPreviewFocused() bool {
+	return m.previewFocused
 }
 
 func (m Model) View() string {

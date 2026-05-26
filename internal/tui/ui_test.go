@@ -723,6 +723,188 @@ func TestPRPreviewPerTabScrollPreserved(t *testing.T) {
 		"Checks tab scroll should be independent of Activity tab scroll")
 }
 
+// TestSetActivePaneSyncsPreviewFocus verifies that toggling the active
+// pane propagates the resulting "is the preview pane focused?" state into
+// prView, so the Checks tab's embedded actionview can refuse navigation
+// keys when the main (row list) pane is focused. Without this, up/down
+// presses leak into the Checks pane even when the user is navigating the
+// PR row list.
+func TestSetActivePaneSyncsPreviewFocus(t *testing.T) {
+	cfg, err := config.ParseConfig(config.Location{
+		ConfigFlag:       "../config/testdata/test-config.yml",
+		SkipGlobalConfig: true,
+	})
+	require.NoError(t, err)
+
+	ctx := &context.ProgramContext{
+		Config: &cfg,
+		View:   config.PRsView,
+	}
+	ctx.Theme = theme.ParseTheme(ctx.Config)
+	ctx.Styles = context.InitStyles(ctx.Theme)
+
+	sidebarModel := sidebar.NewModel()
+	sidebarModel.IsOpen = true
+	sidebarModel.UpdateProgramContext(ctx)
+
+	m := Model{
+		ctx:     ctx,
+		keys:    keys.Keys,
+		prView:  prview.NewModel(ctx),
+		sidebar: sidebarModel,
+	}
+
+	// Initially mainPane → preview not focused.
+	m.setActivePane(mainPane)
+	require.False(t, m.prView.IsPreviewFocused(),
+		"prView.previewFocused must be false when activePane is mainPane")
+
+	// Switch to previewPane with sidebar open → preview focused.
+	m.setActivePane(previewPane)
+	require.True(t, m.prView.IsPreviewFocused(),
+		"prView.previewFocused must be true when activePane is previewPane and sidebar is open")
+
+	// Closing the sidebar should clamp focus off, even if activePane
+	// is still previewPane (matches isPreviewFocused predicate).
+	m.sidebar.IsOpen = false
+	m.setActivePane(previewPane)
+	require.False(t, m.prView.IsPreviewFocused(),
+		"prView.previewFocused must be false when the sidebar is closed")
+}
+
+// TestMainPaneFocusedUpDownDoesNotScrollSidebar verifies that up/down key
+// messages do NOT scroll the global sidebar viewport when the main (row
+// list) pane is focused. Without the gate, sidebar.Update is invoked for
+// every key message in the fall-through after the main key switch, which
+// scrolled the preview viewport visually whenever the user navigated the
+// row list.
+func TestMainPaneFocusedUpDownDoesNotScrollSidebar(t *testing.T) {
+	cfg, err := config.ParseConfig(config.Location{
+		ConfigFlag:       "../config/testdata/test-config.yml",
+		SkipGlobalConfig: true,
+	})
+	require.NoError(t, err)
+
+	ctx := &context.ProgramContext{
+		Config:              &cfg,
+		View:                config.PRsView,
+		MainContentHeight:   10,
+		DynamicPreviewWidth: 80,
+	}
+	ctx.Theme = theme.ParseTheme(ctx.Config)
+	ctx.Styles = context.InitStyles(ctx.Theme)
+
+	// Build a Model with no PR sections so that the Up/Down handlers
+	// short-circuit on `currSection == nil` and don't trigger the row-
+	// change side effects (onViewedRowChanged → syncSidebar → SetContent
+	// resets the viewport offset). That leaves the unconditional fall-
+	// through `m.sidebar.Update(msg)` at the bottom of Update as the
+	// only path that could mutate sidebar.YOffset, isolating the gate
+	// under test.
+	sidebarModel := sidebar.NewModel()
+	sidebarModel.IsOpen = true
+	sidebarModel.UpdateProgramContext(ctx)
+	sidebarModel.SetContent(strings.Repeat("line\n", 200))
+	sidebarModel.ScrollToOffset(20)
+
+	prViewModel := prview.NewModel(ctx)
+	prViewModel.UpdateProgramContext(ctx)
+
+	m := Model{
+		ctx:                ctx,
+		keys:               keys.Keys,
+		prView:             prViewModel,
+		sidebar:            sidebarModel,
+		issueSidebar:       issueview.NewModel(ctx),
+		notificationView:   notificationview.NewModel(ctx),
+		footer:             footer.NewModel(ctx),
+		activePane:         mainPane,
+		prPreviewStates:    map[string]map[int]int{},
+		issuePreviewStates: map[string]int{},
+	}
+	m.ctx.ActivePane = "main"
+	m.syncPreviewFocus()
+
+	startOffset := m.sidebar.YOffset()
+	require.Equal(t, 20, startOffset, "test setup: sidebar should start at offset 20")
+
+	// Press Up with main pane focused. With no current section the
+	// row-change path is a no-op, so the only thing that could move
+	// the sidebar viewport is the unconditional fall-through sidebar
+	// Update. The gate must prevent that.
+	newModel, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyUp})
+	m = newModel.(Model)
+
+	require.Equal(t, startOffset, m.sidebar.YOffset(),
+		"sidebar viewport must not scroll on up-key when main pane is focused")
+
+	// Press Down likewise.
+	newModel, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+	m = newModel.(Model)
+
+	require.Equal(t, startOffset, m.sidebar.YOffset(),
+		"sidebar viewport must not scroll on down-key when main pane is focused")
+}
+
+// TestPreviewPaneFocusedUpDownStillScrollsSidebar is the regression guard
+// for the gate above: with the preview pane focused, up/down must still
+// reach the sidebar so the user can scroll the preview viewport.
+func TestPreviewPaneFocusedUpDownStillScrollsSidebar(t *testing.T) {
+	cfg, err := config.ParseConfig(config.Location{
+		ConfigFlag:       "../config/testdata/test-config.yml",
+		SkipGlobalConfig: true,
+	})
+	require.NoError(t, err)
+
+	ctx := &context.ProgramContext{
+		Config:              &cfg,
+		View:                config.PRsView,
+		MainContentHeight:   10,
+		DynamicPreviewWidth: 80,
+	}
+	ctx.Theme = theme.ParseTheme(ctx.Config)
+	ctx.Styles = context.InitStyles(ctx.Theme)
+
+	prSection := prssection.NewModel(0, ctx, config.PrsSectionConfig{}, time.Now(), time.Now())
+	prSection.Prs = append(prSection.Prs, prrow.Data{
+		Primary: testPullRequestData(1, "https://github.com/owner/repo/pull/1"),
+	})
+	prSection.Table.SetRows(prSection.BuildRows())
+
+	sidebarModel := sidebar.NewModel()
+	sidebarModel.IsOpen = true
+	sidebarModel.UpdateProgramContext(ctx)
+	sidebarModel.SetContent(strings.Repeat("line\n", 200))
+	sidebarModel.ScrollToOffset(20)
+
+	prViewModel := prview.NewModel(ctx)
+	prViewModel.UpdateProgramContext(ctx)
+
+	m := Model{
+		ctx:                ctx,
+		keys:               keys.Keys,
+		prs:                []section.Section{&prSection},
+		prView:             prViewModel,
+		sidebar:            sidebarModel,
+		issueSidebar:       issueview.NewModel(ctx),
+		notificationView:   notificationview.NewModel(ctx),
+		footer:             footer.NewModel(ctx),
+		activePane:         previewPane,
+		prPreviewStates:    map[string]map[int]int{},
+		issuePreviewStates: map[string]int{},
+	}
+	m.ctx.ActivePane = "preview"
+	m.syncPreviewFocus()
+
+	startOffset := m.sidebar.YOffset()
+
+	// Down should scroll the sidebar viewport when preview is focused.
+	newModel, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+	m = newModel.(Model)
+	require.Greater(t, m.sidebar.YOffset(), startOffset,
+		"sidebar viewport should scroll down when preview pane is focused")
+}
+
 // TestViewSwitchPreservesSidebarOpenState verifies the reported bug:
 // switching from PRs (with preview open) to Actions (which doesn't use the
 // global sidebar) and back must NOT close the preview. Exercises the

@@ -1048,6 +1048,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.sidebar.IsOpen = msg.Config.Defaults.Preview.Open
 		}
+		m.syncPreviewFocus()
 		// Seed per-view state for every known view so that the first
 		// navigation away/back yields the configured defaults rather
 		// than zero values.
@@ -1408,7 +1409,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	m.syncProgramContext()
 
-	m.sidebar, sidebarCmd = m.sidebar.Update(msg)
+	// Forward key messages to the sidebar only when the preview pane
+	// owns focus; otherwise up/down/page-up/page-down would scroll the
+	// sidebar viewport even when the user is navigating the row list in
+	// the main pane. Preview-focused key navigation is already handled
+	// by the dedicated early-return branches in the tea.KeyMsg arm
+	// above (isPreviewNavigationKey, isPageUpKey, isPageDownKey,
+	// preview tab keys), so this gate doesn't regress those paths.
+	// Non-key messages (window resize, async updates, mouse) always
+	// flow through so the sidebar viewport stays correctly sized and
+	// up-to-date.
+	if _, isKey := msg.(tea.KeyMsg); !isKey || m.isPreviewFocused() {
+		m.sidebar, sidebarCmd = m.sidebar.Update(msg)
+	}
 
 	// Match the same active-surface gating used in the early-return
 	// branches above: prView/issueSidebar text-input forwarding must
@@ -1815,14 +1828,25 @@ func (m *Model) issueSidebarIsActive() bool {
 func (m *Model) setActivePane(pane activePane) {
 	m.activePane = pane
 	if m.ctx == nil {
+		m.syncPreviewFocus()
 		return
 	}
 	if pane == previewPane && m.sidebar.IsOpen {
 		m.ctx.ActivePane = "preview"
+		m.syncPreviewFocus()
 		return
 	}
 	m.activePane = mainPane
 	m.ctx.ActivePane = "main"
+	m.syncPreviewFocus()
+}
+
+// syncPreviewFocus pushes the current "is the preview pane focused?"
+// state into prView so it can gate key-message forwarding into the
+// embedded Checks-tab actionview. Must be called whenever m.activePane
+// or m.sidebar.IsOpen changes; the predicate matches isPreviewFocused.
+func (m *Model) syncPreviewFocus() {
+	m.prView.SetPreviewFocused(m.activePane == previewPane && m.sidebar.IsOpen)
 }
 
 func (m *Model) isPreviewNavigationKey(msg tea.KeyMsg) bool {
@@ -1946,6 +1970,7 @@ func (m *Model) applyViewState() {
 	} else {
 		m.activePane = mainPane
 	}
+	m.syncPreviewFocus()
 }
 
 func (m *Model) updateNotificationSections(msg tea.Msg) tea.Cmd {
@@ -2233,6 +2258,11 @@ func (m *Model) syncProgramContext() {
 	m.prView.UpdateProgramContext(m.ctx)
 	m.issueSidebar.UpdateProgramContext(m.ctx)
 	m.notificationView.UpdateProgramContext(m.ctx)
+	// Keep prView's preview-focus flag in sync with the current pane
+	// state. This covers any code path that mutates m.activePane or
+	// m.sidebar.IsOpen without going through setActivePane / the
+	// sidebar helpers (e.g. tests that build Model literals directly).
+	m.syncPreviewFocus()
 }
 
 func (m *Model) updateSection(id int, sType string, msg tea.Msg) (cmd tea.Cmd) {
@@ -2371,6 +2401,7 @@ func (m *Model) cyclePreview() tea.Cmd {
 		m.sidebar.IsOpen = true
 		m.positionOverride = "right"
 		m.mirrorSidebarOpenToCurrentView()
+		m.syncPreviewFocus()
 		m.syncMainContentDimensions()
 		m.syncProgramContext()
 		return tea.Batch(m.syncSidebar(), m.reconcileVisibleRefreshes())
@@ -2386,6 +2417,7 @@ func (m *Model) cyclePreview() tea.Cmd {
 	m.sidebar.IsOpen = false
 	m.positionOverride = ""
 	m.mirrorSidebarOpenToCurrentView()
+	m.syncPreviewFocus()
 	m.syncMainContentDimensions()
 	m.syncProgramContext()
 	return m.reconcileVisibleRefreshes()
@@ -2410,6 +2442,7 @@ func (m *Model) openSidebarForPRInput(setFunc func(bool) tea.Cmd) tea.Cmd {
 func (m *Model) openSidebarForInput(setFunc func(bool) tea.Cmd) tea.Cmd {
 	m.sidebar.IsOpen = true
 	m.mirrorSidebarOpenToCurrentView()
+	m.syncPreviewFocus()
 	cmd := setFunc(true)
 	m.syncMainContentDimensions()
 	m.syncSidebar()
@@ -2420,6 +2453,7 @@ func (m *Model) openSidebarForInput(setFunc func(bool) tea.Cmd) tea.Cmd {
 func (m *Model) openSidebarForInputNoScroll(setFunc func(bool) tea.Cmd) tea.Cmd {
 	m.sidebar.IsOpen = true
 	m.mirrorSidebarOpenToCurrentView()
+	m.syncPreviewFocus()
 	cmd := setFunc(true)
 	m.syncMainContentDimensions()
 	m.syncSidebar()
