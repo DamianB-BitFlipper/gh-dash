@@ -9,6 +9,7 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/dlvhdr/gh-dash/v4/internal/config"
 	"github.com/dlvhdr/gh-dash/v4/internal/data"
@@ -200,10 +201,27 @@ func (m Model) BuildRows() []table.Row {
 
 func (m Model) BuildRunRows() []table.Row {
 	rows := make([]table.Row, 0, len(m.filteredRuns()))
+	faint := lipgloss.NewStyle().Foreground(m.Ctx.Theme.FaintText)
+	// In compact mode rows are 1 line tall, so suppress the branch
+	// subtitle to avoid clipping and to honor the user's preference.
+	showBranch := !m.Ctx.Config.Theme.Ui.Table.Compact
 	for _, run := range m.filteredRuns() {
+		titleCell := run.GetTitle()
+		if showBranch {
+			if branch := strings.TrimSpace(run.HeadBranch); branch != "" {
+				// Use a plain newline rather than lipgloss.JoinVertical
+				// here: JoinVertical pre-pads the shorter line with
+				// unstyled spaces, which causes the inner faint-style
+				// reset to truncate the selection background before the
+				// padding. With a plain newline the table renderer pads
+				// each line with cell-styled spaces, so the selection
+				// background extends across the full row.
+				titleCell = titleCell + "\n" + faint.Render(branch)
+			}
+		}
 		rows = append(rows, table.Row{
 			actionrow.StatusIcon(run),
-			run.GetTitle(),
+			titleCell,
 			utils.TimeElapsed(run.UpdatedAt),
 		})
 	}

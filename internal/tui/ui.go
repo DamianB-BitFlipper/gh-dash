@@ -1456,11 +1456,12 @@ func (m *Model) renderActionsThreePane(section *actionssection.Model) string {
 
 	height := max(0, totalHeight-searchBarHeight)
 
-	// Distribute the leftover column more evenly so column widths only
-	// differ by at most one cell.
-	firstWidth := (width + 2) / 3
-	secondWidth := (width + 1) / 3
-	thirdWidth := max(0, width-firstWidth-secondWidth)
+	// Column width distribution:
+	//   - Workflows and Runs take a left strip (~22% each).
+	//   - Details takes the remainder (~56%) so the embedded actionview's
+	//     sub-panes have plenty of room.
+	// Minimums clamp each pane on narrow terminals.
+	firstWidth, secondWidth, thirdWidth := actionsPaneWidths(width)
 
 	// The outer column header is 1 line. The inner Table.View() renders its
 	// own 2-line header (common.TableHeaderHeight). Reserve 3 lines so the
@@ -1522,6 +1523,51 @@ func (m *Model) renderActionsThreePane(section *actionssection.Model) string {
 		return lipgloss.JoinVertical(lipgloss.Left, searchBarView, panes)
 	}
 	return panes
+}
+
+// actionsPaneWidths splits the total width across the three Actions panes
+// (workflows, runs, details). Returns widths in that order. Workflows and
+// runs share a narrow left strip (~22% each); details takes the rest so the
+// embedded actionview has plenty of room for its sub-panes. Each pane has a
+// minimum floor so the layout doesn't collapse on narrow terminals.
+func actionsPaneWidths(total int) (workflows, runs, details int) {
+	if total <= 0 {
+		return 0, 0, 0
+	}
+	const (
+		minWorkflows = 20
+		minRuns      = 20
+		minDetails   = 30
+	)
+
+	// Each of workflows and runs takes ~22% of the width; details gets the
+	// remaining ~56%.
+	workflows = total * 22 / 100
+	runs = total * 22 / 100
+	if workflows < minWorkflows {
+		workflows = minWorkflows
+	}
+	if runs < minRuns {
+		runs = minRuns
+	}
+
+	details = max(0, total-workflows-runs)
+	if details < minDetails {
+		// Steal from workflows/runs proportionally to keep details usable.
+		short := minDetails - details
+		fromW := short / 2
+		fromR := short - fromW
+		if workflows-fromW < minWorkflows {
+			fromW = max(0, workflows-minWorkflows)
+		}
+		if runs-fromR < minRuns {
+			fromR = max(0, runs-minRuns)
+		}
+		workflows -= fromW
+		runs -= fromR
+		details = max(0, total-workflows-runs)
+	}
+	return workflows, runs, details
 }
 
 func (m *Model) renderActionsRunDetailsPane(run *data.WorkflowRun, width, height, headerHeight int) string {
