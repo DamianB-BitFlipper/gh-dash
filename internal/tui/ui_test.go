@@ -724,6 +724,104 @@ func TestPRPreviewPerTabScrollPreserved(t *testing.T) {
 		"Checks tab scroll should be independent of Activity tab scroll")
 }
 
+func TestPRPreviewTabKeysPreserveActivityScroll(t *testing.T) {
+	keys.PRKeys.PrevSidebarTab.SetKeys("left")
+	keys.PRKeys.NextSidebarTab.SetKeys("right")
+	markdown.InitializeMarkdownStyle(true)
+
+	cfg, err := config.ParseConfig(config.Location{
+		ConfigFlag:       "../config/testdata/test-config.yml",
+		SkipGlobalConfig: true,
+	})
+	require.NoError(t, err)
+
+	ctx := &context.ProgramContext{
+		Config:              &cfg,
+		View:                config.PRsView,
+		MainContentHeight:   12,
+		DynamicPreviewWidth: 80,
+	}
+	ctx.Theme = theme.ParseTheme(ctx.Config)
+	ctx.Styles = context.InitStyles(ctx.Theme)
+
+	updatedAt := time.Now()
+	comments := make([]data.Comment, 0, 40)
+	for i := range 40 {
+		comment := data.Comment{
+			Body:      strings.Repeat("comment body\n", 3),
+			UpdatedAt: updatedAt.Add(time.Duration(i) * time.Minute),
+		}
+		comment.Author.Login = "alice"
+		comments = append(comments, comment)
+	}
+
+	primary := testPullRequestData(1, "https://github.com/owner/repo/pull/1")
+	pr := prrow.Data{
+		Primary: primary,
+		Enriched: data.EnrichedPullRequestData{
+			Number: primary.Number,
+			Title:  primary.Title,
+			Url:    primary.Url,
+			State:  primary.State,
+			Comments: data.CommentsWithBody{
+				Nodes: comments,
+			},
+		},
+		IsEnriched: true,
+	}
+	prSection := prssection.NewModel(0, ctx, config.PrsSectionConfig{}, time.Now(), time.Now())
+	prSection.Prs = []prrow.Data{pr}
+	prSection.Table.SetRows(prSection.BuildRows())
+
+	sidebarModel := sidebar.NewModel()
+	sidebarModel.IsOpen = true
+	sidebarModel.UpdateProgramContext(ctx)
+	prViewModel := prview.NewModel(ctx)
+	prViewModel.UpdateProgramContext(ctx)
+
+	m := Model{
+		ctx:                ctx,
+		keys:               keys.Keys,
+		prs:                []section.Section{&prSection},
+		prView:             prViewModel,
+		sidebar:            sidebarModel,
+		issueSidebar:       issueview.NewModel(ctx),
+		notificationView:   notificationview.NewModel(ctx),
+		footer:             footer.NewModel(ctx),
+		activePane:         previewPane,
+		prPreviewStates:    map[string]map[int]int{},
+		issuePreviewStates: map[string]int{},
+	}
+	m.ctx.ActivePane = "preview"
+	m.syncPreviewFocus()
+	m.prView.SetRow(&pr)
+	m.prView.GoToActivityTab()
+	m.syncSidebar()
+	m.sidebar.ScrollToBottom()
+	activityOffset := m.sidebar.YOffset()
+	require.Greater(t, activityOffset, 0, "test setup should create a scrollable Activity tab")
+
+	next, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyRight})
+	m = next.(Model)
+	require.Equal(t, 2, m.prView.SelectedTabIndex(), "right from Activity should go to Checks")
+
+	next, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyLeft})
+	m = next.(Model)
+	require.Equal(t, 1, m.prView.SelectedTabIndex(), "left from Checks should return to Activity")
+	require.Equal(t, activityOffset, m.sidebar.YOffset(),
+		"Activity scroll should survive a Checks round-trip")
+
+	next, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyLeft})
+	m = next.(Model)
+	require.Equal(t, 0, m.prView.SelectedTabIndex(), "left from Activity should go to Overview")
+
+	next, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyRight})
+	m = next.(Model)
+	require.Equal(t, 1, m.prView.SelectedTabIndex(), "right from Overview should return to Activity")
+	require.Equal(t, activityOffset, m.sidebar.YOffset(),
+		"Activity scroll should survive an Overview round-trip")
+}
+
 // TestSetActivePaneSyncsPreviewFocus verifies that toggling the active
 // pane propagates the resulting "is the preview pane focused?" state into
 // prView, so the Checks tab's embedded actionview can refuse navigation

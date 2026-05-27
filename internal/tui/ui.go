@@ -383,8 +383,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case m.isPreviewFocused() && m.isPreviewTabKey(msg):
+			outgoingTab := m.prView.SelectedTabIndex()
+			m.savePRPreviewStateAt(outgoingTab)
 			m.prView, prViewCmd = m.prView.Update(msg)
 			m.syncSidebar()
+			if !m.restoreCurrentPRPreviewTab() {
+				m.sidebar.ScrollToTop()
+			}
 			cmds = append(cmds, prViewCmd, m.reconcileVisibleRefreshes())
 			return m, tea.Batch(cmds...)
 
