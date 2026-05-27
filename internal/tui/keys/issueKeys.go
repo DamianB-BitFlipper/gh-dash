@@ -51,8 +51,7 @@ var IssueKeys = IssueKeyMap{
 		key.WithHelp("X", "toggle open/close"),
 	),
 	ToggleSmartFiltering: key.NewBinding(
-		key.WithKeys("t"),
-		key.WithHelp("t", "toggle smart filtering"),
+		key.WithHelp("", "toggle smart filtering"),
 	),
 	SortOrder: key.NewBinding(
 		key.WithKeys("S"),

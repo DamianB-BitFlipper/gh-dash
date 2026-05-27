@@ -304,6 +304,21 @@ func TestDefaultViewSwitchKeybindingsAreUnbound(t *testing.T) {
 	}
 }
 
+func TestDefaultSmartFilteringKeybindingsAreUnbound(t *testing.T) {
+	if len(PRKeys.ToggleSmartFiltering.Keys()) != 0 {
+		t.Fatalf("expected PR smart filtering key to be unbound by default, got %v", PRKeys.ToggleSmartFiltering.Keys())
+	}
+	if len(IssueKeys.ToggleSmartFiltering.Keys()) != 0 {
+		t.Fatalf("expected issue smart filtering key to be unbound by default, got %v", IssueKeys.ToggleSmartFiltering.Keys())
+	}
+	if len(ActionsKeys.ToggleSmartFiltering.Keys()) != 0 {
+		t.Fatalf("expected actions smart filtering key to be unbound by default, got %v", ActionsKeys.ToggleSmartFiltering.Keys())
+	}
+	if len(NotificationKeys.ToggleSmartFiltering.Keys()) != 0 {
+		t.Fatalf("expected notification smart filtering key to be unbound by default, got %v", NotificationKeys.ToggleSmartFiltering.Keys())
+	}
+}
+
 func TestFullHelpColumnsAreBalanced(t *testing.T) {
 	keymap := CreateKeyMapForView(config.PRsView)
 	help := keymap.FullHelp()

@@ -136,8 +136,7 @@ var PRKeys = PRKeyMap{
 		key.WithHelp("z", "resolve/unresolve thread"),
 	),
 	ToggleSmartFiltering: key.NewBinding(
-		key.WithKeys("t"),
-		key.WithHelp("t", "toggle smart filtering"),
+		key.WithHelp("", "toggle smart filtering"),
 	),
 	SortOrder: key.NewBinding(
 		key.WithKeys("S"),
@@ -294,6 +293,8 @@ func rebindPRKeys(keys []config.Keybinding) error {
 			key = &PRKeys.NextStep
 		case "toggleReviewThread":
 			key = &PRKeys.ToggleReviewThread
+		case "toggleSmartFiltering":
+			key = &PRKeys.ToggleSmartFiltering
 		case "sortOrder":
 			key = &PRKeys.SortOrder
 		case "viewIssues":

@@ -420,6 +420,12 @@ export const CodeViewWrapper = memo(function CodeViewWrapper({
         // Use this to validate itemMetrics when changing layout with unsafeCSS.
         // __devOnlyValidateItemHeights: true,
         layout: CODE_VIEW_LAYOUT,
+        itemMetrics: {
+          hunkLineCount: 1,
+          lineHeight: 18,
+          diffHeaderHeight: 42,
+          spacing: 8,
+        },
         theme: { dark: 'pierre-dark-soft', light: 'pierre-light-soft' },
         diffStyle,
         diffIndicators,
@@ -453,7 +459,7 @@ export const CodeViewWrapper = memo(function CodeViewWrapper({
       initialItems={initialItems}
       className={cn(
         className,
-        'cv-scrollbar relative h-full min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-clip overscroll-contain border-b border-border w-full [contain:strict] [overflow-anchor:none] [will-change:scroll-position] md:border-b-0 [&_diffs-container]:overflow-clip [&_diffs-container]:[contain:layout_paint_style] [&_diffs-container]:shadow-[0_-1px_0_var(--color-border-opaque),0_1px_0_var(--color-border-opaque)]'
+        'cv-scrollbar relative h-full min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-clip overscroll-contain border-b border-border w-full [contain:strict] [overflow-anchor:none] md:border-b-0 [&_diffs-container]:overflow-clip [&_diffs-container]:[contain:layout_paint_style] [&_diffs-container]:shadow-[0_-1px_0_var(--color-border-opaque),0_1px_0_var(--color-border-opaque)]'
       )}
       options={options}
       selectedLines={selectedLines}
