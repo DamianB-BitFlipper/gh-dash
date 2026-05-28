@@ -34,6 +34,11 @@ export const CODE_VIEW_CUSTOM_CSS = `
     background-color: var(--color-border-opaque);
   }
 }
+
+::highlight(gh-dash-diff-search) {
+  color: #111827;
+  background-color: #facc15;
+}
 `;
 
 export const CODE_VIEW_FILE_TREE_ITEM_HEIGHT = 24;

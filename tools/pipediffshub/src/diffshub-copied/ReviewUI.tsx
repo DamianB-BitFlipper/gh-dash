@@ -286,6 +286,7 @@ export function ReviewUI({ domain, path }: ReviewUIProps) {
             onCommentSaved={handleCommentSaved}
             onLineLinkChange={onLineLinkChange}
             onViewerReady={onViewerReady}
+            searchQuery={searchOpen ? searchQuery : ''}
           />
           {searchOpen && (
             <DiffSearchOverlay

@@ -83,6 +83,22 @@ interface CodeViewWrapperProps {
   initialItems: CodeViewItem<CommentMetadata>[];
   onLineLinkChange(selection: CodeViewLineSelection | null): void;
   onViewerReady(): void;
+  searchQuery: string;
+}
+
+const DIFF_SEARCH_HIGHLIGHT_NAME = 'gh-dash-diff-search';
+
+interface CSSHighlightsRegistry {
+  delete(name: string): boolean;
+  set(name: string, highlight: unknown): void;
+}
+
+interface CSSWithHighlights {
+  highlights?: CSSHighlightsRegistry;
+}
+
+interface WindowWithHighlight extends Window {
+  Highlight?: new (...ranges: Range[]) => unknown;
 }
 
 export const CodeViewWrapper = memo(function CodeViewWrapper({
@@ -99,11 +115,14 @@ export const CodeViewWrapper = memo(function CodeViewWrapper({
   initialItems,
   onLineLinkChange,
   onViewerReady,
+  searchQuery,
 }: CodeViewWrapperProps) {
   const nextCommentKeyRef = useRef(0);
   const activeDraftRef = useRef<ActiveDraftComment | null>(null);
   const [selectedLines, setSelectedLines] =
     useState<CodeViewLineSelection | null>(null);
+
+  useDiffSearchHighlights(scrollRef, searchQuery);
 
   const handleSetSelection = useStableCallback(
     (selection: CodeViewLineSelection | null) => {
@@ -468,6 +487,122 @@ export const CodeViewWrapper = memo(function CodeViewWrapper({
     />
   );
 });
+
+function useDiffSearchHighlights(
+  scrollRef: RefObject<HTMLDivElement | null>,
+  query: string
+) {
+  useEffect(() => {
+    const root = scrollRef.current;
+    const normalizedQuery = query.trim().toLowerCase();
+    const cssHighlights = (CSS as CSSWithHighlights).highlights;
+    const HighlightCtor = (window as WindowWithHighlight).Highlight;
+
+    if (root == null || cssHighlights == null || HighlightCtor == null) {
+      return;
+    }
+
+    let frame = 0;
+    const observedRoots = new WeakSet<Node>();
+    const clearHighlight = () => {
+      cssHighlights.delete(DIFF_SEARCH_HIGHLIGHT_NAME);
+    };
+    const observeRoot = (node: Node) => {
+      if (observedRoots.has(node)) {
+        return;
+      }
+      observedRoots.add(node);
+      observer.observe(node, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      });
+    };
+    const observeShadowRoots = (node: Node) => {
+      if (node instanceof Element && node.shadowRoot != null) {
+        observeRoot(node.shadowRoot);
+      }
+      for (const child of node.childNodes) {
+        observeShadowRoots(child);
+      }
+      if (node instanceof Element && node.shadowRoot != null) {
+        for (const child of node.shadowRoot.childNodes) {
+          observeShadowRoots(child);
+        }
+      }
+    };
+    const forEachTextNode = (node: Node, visit: (textNode: Text) => void) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        visit(node as Text);
+        return;
+      }
+      if (node instanceof Element && node.shadowRoot != null) {
+        forEachTextNode(node.shadowRoot, visit);
+      }
+      for (const child of node.childNodes) {
+        forEachTextNode(child, visit);
+      }
+    };
+    const updateHighlight = () => {
+      frame = 0;
+      clearHighlight();
+      if (normalizedQuery.length === 0 || !root.isConnected) {
+        return;
+      }
+
+      const ranges: Range[] = [];
+      observeShadowRoots(root);
+      forEachTextNode(root, (textNode) => {
+        const text = textNode.data;
+        const searchableText = text.toLowerCase();
+        let start = searchableText.indexOf(normalizedQuery);
+        while (start !== -1) {
+          const range = root.ownerDocument.createRange();
+          range.setStart(textNode, start);
+          range.setEnd(textNode, start + normalizedQuery.length);
+          ranges.push(range);
+          start = searchableText.indexOf(
+            normalizedQuery,
+            start + normalizedQuery.length
+          );
+        }
+      });
+
+      if (ranges.length > 0) {
+        cssHighlights.set(
+          DIFF_SEARCH_HIGHLIGHT_NAME,
+          new HighlightCtor(...ranges)
+        );
+      }
+    };
+    const scheduleUpdate = () => {
+      if (frame !== 0) {
+        return;
+      }
+      frame = window.requestAnimationFrame(updateHighlight);
+    };
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          observeShadowRoots(node);
+        }
+      }
+      scheduleUpdate();
+    });
+
+    scheduleUpdate();
+    observeRoot(root);
+    observeShadowRoots(root);
+
+    return () => {
+      observer.disconnect();
+      if (frame !== 0) {
+        window.cancelAnimationFrame(frame);
+      }
+      clearHighlight();
+    };
+  }, [query, scrollRef]);
+}
 
 interface CustomDiffHeaderProps {
   item: CodeViewDiffItem<CommentMetadata>;
