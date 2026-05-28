@@ -12,3 +12,38 @@ index c51118a690916699ebdac23dabf4e46c5ab04bf4..0ba8fd1edda5fca184a3225835c0fb15
  		this.stickyContainer.style.top = `${stickyJitter}px`;
  		this.stickyContainer.style.bottom = `${stickyJitter + itemMetrics.diffHeaderHeight}px`;
  	}
+diff --git a/dist/components/VirtualizedFileDiff.js b/dist/components/VirtualizedFileDiff.js
+index 4aaf6cf..9e8d5d2 100644
+--- a/dist/components/VirtualizedFileDiff.js
++++ b/dist/components/VirtualizedFileDiff.js
+@@ -507,12 +507,18 @@ var VirtualizedFileDiff = class extends FileDiff {
+-		if (fileTop < top - fileHeight || fileTop > bottom) return {
+-			startingLine: 0,
+-			totalLines: 0,
+-			bufferBefore: 0,
+-			bufferAfter: fileHeight - headerRegion - paddingBottom
+-		};
+-		if (lineCount <= hunkLineCount || fileDiff.hunks.length === 0) return {
+-			startingLine: 0,
+-			totalLines: hunkLineCount,
+-			bufferBefore: 0,
+-			bufferAfter: 0
+-		};
++    if (fileTop < top - fileHeight || fileTop > bottom) return {
++      startingLine: 0,
++      totalLines: 0,
++      bufferBefore: 0,
++      bufferAfter: fileHeight - headerRegion - paddingBottom
++    };
++    if ((this.options.overflow ?? "scroll") === "wrap" && lineCount <= 500) return {
++      startingLine: 0,
++      totalLines: lineCount,
++      bufferBefore: 0,
++      bufferAfter: 0
++    };
++    if (lineCount <= hunkLineCount || fileDiff.hunks.length === 0) return {
++      startingLine: 0,
++      totalLines: hunkLineCount,
++      bufferBefore: 0,
++      bufferAfter: 0
++    };

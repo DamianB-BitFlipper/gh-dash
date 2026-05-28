@@ -58,6 +58,7 @@ func TestRenderRequestedReviewers(t *testing.T) {
 	testCases := map[string]struct {
 		reviewRequests []data.ReviewRequestNode
 		reviews        []data.Review
+		reviewDecision string
 		wantContains   []string
 		wantNotContain []string
 	}{
@@ -190,6 +191,12 @@ func TestRenderRequestedReviewers(t *testing.T) {
 			},
 			wantContains: []string{"Reviewers", "@alice", constants.ApprovedIcon},
 		},
+		"approved without requested reviewers or review nodes": {
+			reviewRequests: []data.ReviewRequestNode{},
+			reviews:        []data.Review{},
+			reviewDecision: "APPROVED",
+			wantContains:   []string{"Reviewers", "Approved", constants.ApprovedIcon},
+		},
 		"reviewer who requested changes": {
 			reviewRequests: []data.ReviewRequestNode{},
 			reviews: []data.Review{
@@ -258,6 +265,7 @@ func TestRenderRequestedReviewers(t *testing.T) {
 					TotalCount: len(tc.reviews),
 					Nodes:      tc.reviews,
 				},
+				ReviewDecision: tc.reviewDecision,
 			}
 
 			m := newTestModel(t, prData)

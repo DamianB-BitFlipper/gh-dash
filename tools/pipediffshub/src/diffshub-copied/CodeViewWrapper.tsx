@@ -360,23 +360,24 @@ export const CodeViewWrapper = memo(function CodeViewWrapper({
       return;
     }
 
-    // NOTE(amadeus): If the top of the item is before the scrollTop, then
-    // we'll want to apply a scroll fix on the next render to ensure we
-    // keep the collapsed file in view and anchored.
-    const itemTop = viewer.getTopForItem(itemId);
     item.collapsed = item.collapsed !== true;
     item.version = getNextItemVersion(item);
     if (!viewerHandle.updateItem(item)) {
       return;
     }
 
-    if (itemTop != null && itemTop < viewer.getScrollTop()) {
-      viewer.scrollTo({
-        type: 'item',
-        id: item.id,
-        align: 'start',
-      });
-    }
+    // NOTE: `updateItem` only queues a render -- layout/`item.top` values are
+    // not refreshed synchronously. Forcing a synchronous render here lets the
+    // library run its own scroll-anchor restoration in the same frame, which
+    // keeps whatever content is currently under the viewport visually pinned
+    // when a file above the fold expands/collapses.
+    //
+    // We deliberately do NOT issue a follow-up `viewer.scrollTo(...)` here.
+    // The synchronous anchor restoration above already keeps the viewport
+    // stable; an additional `scrollTo` runs on later frames and competes with
+    // that restoration, producing the small post-toggle "jump"/jitter that is
+    // most noticeable when collapsing small hunks and then scrolling.
+    viewer.render(true);
   });
 
   const renderCommentAnnotation = useStableCallback(
@@ -436,7 +437,11 @@ export const CodeViewWrapper = memo(function CodeViewWrapper({
   const options: CodeViewOptions<CommentMetadata> = useMemo(
     () =>
       ({
-        // Use this to validate itemMetrics when changing layout with unsafeCSS.
+        // Set to `true` (only works in the Vite dev build) to log per-item
+        // estimated-vs-measured height mismatches to the console. Useful when
+        // changing `itemMetrics`/`unsafeCSS`: any non-zero delta means the
+        // height estimate and rendered DOM disagree, which shows up as blank
+        // space below the diff and/or scroll jitter.
         // __devOnlyValidateItemHeights: true,
         layout: CODE_VIEW_LAYOUT,
         itemMetrics: {
@@ -444,6 +449,13 @@ export const CodeViewWrapper = memo(function CodeViewWrapper({
           lineHeight: 18,
           diffHeaderHeight: 42,
           spacing: 8,
+          // NOTE: Do NOT set `paddingBottom: 0` here. Each rendered file box
+          // includes 8px of bottom spacing in the DOM; omitting it from the
+          // height estimate makes every file's reserved height 8px too small,
+          // which the virtualizer compounds across files into a wrong total
+          // scroll height (and, depending on render order, blank space below
+          // the diff). Leaving `paddingBottom` unset makes the library fall
+          // back to `spacing` (8px), matching the measured DOM exactly.
         },
         theme: { dark: 'pierre-dark-soft', light: 'pierre-light-soft' },
         diffStyle,
@@ -452,7 +464,7 @@ export const CodeViewWrapper = memo(function CodeViewWrapper({
         disableBackground: !showBackgrounds,
         disableLineNumbers: !lineNumbers,
         lineHoverHighlight: 'number',
-        // hunkSeparators: 'line-info-basic',
+        hunkSeparators: 'line-info-basic',
         enableLineSelection: true,
         enableGutterUtility: false,
         stickyHeaders: true,

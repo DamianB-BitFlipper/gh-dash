@@ -179,12 +179,18 @@ func keepSameSpacesOnAddDeletions(str string) string {
 }
 
 func (pr *PullRequest) renderTitle() string {
-	return components.RenderIssueTitle(
+	title := components.RenderIssueTitle(
 		pr.Ctx,
 		pr.Data.Primary.State,
 		pr.Data.Primary.Title,
 		pr.Data.Primary.Number,
 	)
+
+	if badge := pr.renderReviewDecisionBadge(lipgloss.NewStyle()); badge != "" {
+		title = lipgloss.JoinHorizontal(lipgloss.Top, title, " ", badge)
+	}
+
+	return title
 }
 
 func (pr *PullRequest) renderExtendedTitle(isSelected bool) string {
@@ -204,6 +210,9 @@ func (pr *PullRequest) renderExtendedTitle(isSelected bool) string {
 		if branch != "" {
 			top = lipgloss.JoinHorizontal(lipgloss.Top, top, baseStyle.Render(" · "), baseStyle.Render(branch))
 		}
+	}
+	if badge := pr.renderReviewDecisionBadge(baseStyle); badge != "" {
+		top = lipgloss.JoinHorizontal(lipgloss.Top, top, baseStyle.Render(" · "), badge)
 	}
 	title := pr.Data.Primary.Title
 	var titleColumn table.Column
@@ -230,6 +239,18 @@ func (pr *PullRequest) renderExtendedTitle(isSelected bool) string {
 	).Height(1).MaxHeight(1).Render(title)
 
 	return baseStyle.Render(lipgloss.JoinVertical(lipgloss.Left, top, branches, title))
+}
+
+func (pr *PullRequest) renderReviewDecisionBadge(baseStyle lipgloss.Style) string {
+	if pr.Data == nil || pr.Data.Primary == nil || pr.Data.Primary.ReviewDecision != "APPROVED" {
+		return ""
+	}
+
+	return lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		baseStyle.Foreground(pr.Ctx.Theme.SuccessText).Render(constants.ApprovedIcon),
+		baseStyle.Foreground(pr.Ctx.Theme.SuccessText).Render(" Approved"),
+	)
 }
 
 func (pr *PullRequest) renderAuthor() string {

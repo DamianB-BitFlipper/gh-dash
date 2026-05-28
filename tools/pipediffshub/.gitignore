@@ -3,3 +3,4 @@ dist/
 *.log
 pipediffshub
 src/embedded-dist.ts
+dev/*.diff

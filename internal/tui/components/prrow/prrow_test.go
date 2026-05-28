@@ -6,6 +6,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/compat"
+	"github.com/charmbracelet/x/ansi"
 	graphql "github.com/cli/shurcooL-graphql"
 	"github.com/dlvhdr/gh-dehub/v4/internal/checks"
 
@@ -371,6 +372,54 @@ func TestRenderExtendedTitleIncludesBranchDirection(t *testing.T) {
 
 	if !strings.Contains(got, "develop <- fix/eval-sandbox-race") {
 		t.Fatalf("expected branch direction in extended title, got %q", got)
+	}
+}
+
+func TestRenderTitleIncludesApprovedReviewDecision(t *testing.T) {
+	pr := &PullRequest{
+		Data: &Data{Primary: &data.PullRequestData{
+			Title:          "Fix sandbox webhook logic",
+			Number:         2456,
+			State:          "OPEN",
+			ReviewDecision: "APPROVED",
+		}},
+		Ctx: &context.ProgramContext{
+			Config: &config.Config{Theme: &config.ThemeConfig{
+				Ui: config.UIThemeConfig{Table: config.TableUIThemeConfig{Compact: true}},
+			}},
+			Theme: *theme.DefaultTheme,
+		},
+	}
+
+	got := ansi.Strip(pr.renderTitle())
+
+	if !strings.Contains(got, constants.ApprovedIcon+" Approved") {
+		t.Fatalf("expected approved review decision in title, got %q", got)
+	}
+}
+
+func TestRenderExtendedTitleIncludesApprovedReviewDecision(t *testing.T) {
+	pr := &PullRequest{
+		Data: &Data{Primary: &data.PullRequestData{
+			Title:          "Fix sandbox webhook logic",
+			Number:         2456,
+			State:          "OPEN",
+			ReviewDecision: "APPROVED",
+			HeadRefName:    "fix/eval-sandbox-race",
+			BaseRefName:    "develop",
+			Repository:     data.Repository{NameWithOwner: "owner/repo"},
+		}},
+		Ctx: &context.ProgramContext{
+			Config: &config.Config{Theme: &config.ThemeConfig{}},
+			Theme:  *theme.DefaultTheme,
+		},
+		Columns: []table.Column{{Grow: boolPtr(true), ComputedWidth: 80}},
+	}
+
+	got := ansi.Strip(pr.renderExtendedTitle(false))
+
+	if !strings.Contains(got, constants.ApprovedIcon+" Approved") {
+		t.Fatalf("expected approved review decision in extended title, got %q", got)
 	}
 }
 

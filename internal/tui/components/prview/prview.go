@@ -453,8 +453,9 @@ func (m *Model) renderRequestedReviewers() string {
 	reviewRequests := m.pr.Data.Enriched.ReviewRequests.Nodes
 	reviews := m.pr.Data.Enriched.Reviews.Nodes
 	suggestedReviewers := m.pr.Data.Enriched.SuggestedReviewers
+	isApproved := m.pr.Data.Primary.ReviewDecision == "APPROVED"
 
-	if len(reviewRequests) == 0 && len(reviews) == 0 && len(suggestedReviewers) == 0 {
+	if len(reviewRequests) == 0 && len(reviews) == 0 && len(suggestedReviewers) == 0 && !isApproved {
 		return ""
 	}
 
@@ -531,6 +532,11 @@ func (m *Model) renderRequestedReviewers() string {
 		reviewerItems = append(reviewerItems, reviewerItem{text: reviewerStr})
 	}
 
+	if isApproved && !hasReviewState(reviewStates, "APPROVED") {
+		reviewerStr := successStyle.Render(constants.ApprovedIcon) + " " + reviewerStyle.Render("Approved")
+		reviewerItems = append(reviewerItems, reviewerItem{text: reviewerStr})
+	}
+
 	// Show suggested reviewers (= code owners) who haven't been requested or reviewed yet
 	for _, suggested := range suggestedReviewers {
 		login := suggested.Reviewer.Login
@@ -601,6 +607,15 @@ func (m *Model) renderRequestedReviewers() string {
 		"",
 		strings.Join(rows, "\n"),
 	)
+}
+
+func hasReviewState(reviewStates map[string]string, state string) bool {
+	for _, reviewState := range reviewStates {
+		if reviewState == state {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Model) renderAuthor() string {
