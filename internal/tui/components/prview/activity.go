@@ -10,11 +10,11 @@ import (
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/compat"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/cmpcontroller"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/markdown"
-	"github.com/dlvhdr/gh-dash/v4/internal/utils"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/cmpcontroller"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/markdown"
+	"github.com/dlvhdr/gh-dehub/v4/internal/utils"
 )
 
 type cachedActivity struct {

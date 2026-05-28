@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/notificationrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/notificationrow"
 )
 
 func TestLocalSearchFiltersNotificationsByTitleRepoAndReason(t *testing.T) {

@@ -15,15 +15,15 @@ import (
 	"charm.land/lipgloss/v2"
 	log "charm.land/log/v2"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/common"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/notificationrow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prrow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/section"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/markdown"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/common"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/notificationrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/section"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/markdown"
 )
 
 func (m *Model) getCurrSection() section.Section {
@@ -177,7 +177,7 @@ func (m *Model) executeKeybinding(key string) tea.Cmd {
 
 // resolveTemplateInput builds the input map for a keybinding command template.
 // It merges context-specific data and resolves RepoPath via the repoPaths config mapping.
-// ctxRepoPath is the path of the repo gh-dash was started from (may be empty).
+// ctxRepoPath is the path of the repo dehub was started from (may be empty).
 func resolveTemplateInput(
 	contextData *map[string]any,
 	repoPaths map[string]string,

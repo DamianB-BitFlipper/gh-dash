@@ -4,12 +4,12 @@ import (
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/compat"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/theme"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/theme"
 )
 
 var (
-	HeaderHeight       = 3
+	HeaderHeight       = 1
 	SearchHeight       = 3
 	FooterHeight       = 1
 	ExpandedHelpHeight = 17
@@ -17,7 +17,7 @@ var (
 	SingleRuneWidth    = 4
 	MainContentPadding = 1
 	TabsBorderHeight   = 1
-	TabsContentHeight  = 3
+	TabsContentHeight  = 1
 	TabsHeight         = TabsBorderHeight + TabsContentHeight
 	ViewSwitcherMargin = 1
 	TableHeaderHeight  = 2

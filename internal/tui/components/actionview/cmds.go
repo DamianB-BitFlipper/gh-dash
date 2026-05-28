@@ -15,9 +15,9 @@ import (
 	"charm.land/log/v2"
 	"github.com/cli/go-gh/v2/pkg/browser"
 
-	data "github.com/dlvhdr/gh-dash/v4/internal/data/actions"
-	api "github.com/dlvhdr/gh-dash/v4/internal/data/actionsapi"
-	parser "github.com/dlvhdr/gh-dash/v4/internal/data/actionsparser"
+	data "github.com/dlvhdr/gh-dehub/v4/internal/data/actions"
+	api "github.com/dlvhdr/gh-dehub/v4/internal/data/actionsapi"
+	parser "github.com/dlvhdr/gh-dehub/v4/internal/data/actionsparser"
 )
 
 type workflowRunsFetchedMsg struct {

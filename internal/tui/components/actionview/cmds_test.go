@@ -9,8 +9,8 @@ import (
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
 
-	data "github.com/dlvhdr/gh-dash/v4/internal/data/actions"
-	api "github.com/dlvhdr/gh-dash/v4/internal/data/actionsapi"
+	data "github.com/dlvhdr/gh-dehub/v4/internal/data/actions"
+	api "github.com/dlvhdr/gh-dehub/v4/internal/data/actionsapi"
 	graphql "github.com/hasura/go-graphql-client"
 )
 
@@ -30,7 +30,7 @@ func TestMergingOfSameWorkflowJobs(t *testing.T) {
 		res.Data.Resource.PullRequest.Commits.Nodes[0].Commit.StatusCheckRollup.Contexts.Nodes[0].CheckRun,
 	)
 
-	m := NewModel("dlvhdr/gh-dash", "1", ModelOpts{})
+	m := NewModel("dlvhdr/gh-dehub", "1", ModelOpts{})
 	m.prWithChecks = res.Data.Resource.PullRequest
 
 	runs := makeWorkflowRuns(
@@ -67,7 +67,7 @@ func TestMergingOfSameWorkflowJobs(t *testing.T) {
 					Workflow:   wfr.Name,
 					Event:      "pull_request",
 					Logs:       []data.LogsWithTime{},
-					Link:       "https://github.com/dlvhdr/gh-dash/actions/runs/19991547923/job/57332991075",
+					Link:       "https://github.com/dlvhdr/gh-dehub/actions/runs/19991547923/job/57332991075",
 					Bucket:     data.CheckBucketPass,
 					Kind:       data.JobKindCheckRun,
 				},
@@ -127,7 +127,7 @@ func TestMakeWorkflowRunsIncludesStatusContexts(t *testing.T) {
 }
 
 func TestEmbeddedFlatChecksShowsLoadingBeforeFirstFetch(t *testing.T) {
-	m := NewModel("dlvhdr/gh-dash", "1", ModelOpts{Flat: true})
+	m := NewModel("dlvhdr/gh-dehub", "1", ModelOpts{Flat: true})
 	m.SetSize(80, 20)
 
 	view := m.EmbeddedView()
@@ -137,7 +137,7 @@ func TestEmbeddedFlatChecksShowsLoadingBeforeFirstFetch(t *testing.T) {
 }
 
 func TestEmbeddedFlatChecksShowsRateLimitError(t *testing.T) {
-	m := NewModel("dlvhdr/gh-dash", "1", ModelOpts{Flat: true, Embedded: true})
+	m := NewModel("dlvhdr/gh-dehub", "1", ModelOpts{Flat: true, Embedded: true})
 	m.SetSize(80, 20)
 
 	err := errors.New("rate limit exceeded")
@@ -153,7 +153,7 @@ func TestEmbeddedFlatChecksShowsRateLimitError(t *testing.T) {
 }
 
 func TestEmbeddedModelUsesFullProvidedHeight(t *testing.T) {
-	m := NewModel("dlvhdr/gh-dash", "1", ModelOpts{Flat: true, Embedded: true})
+	m := NewModel("dlvhdr/gh-dehub", "1", ModelOpts{Flat: true, Embedded: true})
 	m.SetSize(80, 20)
 
 	if got := m.getMainContentHeight(); got != 20 {
@@ -162,7 +162,7 @@ func TestEmbeddedModelUsesFullProvidedHeight(t *testing.T) {
 }
 
 func TestLogsCopySelectionContentUsesVisibleUnstyledLogs(t *testing.T) {
-	m := NewModel("dlvhdr/gh-dash", "1", ModelOpts{Flat: true, Embedded: true})
+	m := NewModel("dlvhdr/gh-dehub", "1", ModelOpts{Flat: true, Embedded: true})
 	m.SetSize(80, 10)
 	check := NewCheckItem(data.WorkflowJob{
 		Id:         "1",
@@ -189,7 +189,7 @@ func TestLogsCopySelectionContentUsesVisibleUnstyledLogs(t *testing.T) {
 }
 
 func TestRenderLogsStripsANSIEscapes(t *testing.T) {
-	m := NewModel("dlvhdr/gh-dash", "1", ModelOpts{})
+	m := NewModel("dlvhdr/gh-dehub", "1", ModelOpts{})
 	m.SetSize(80, 20)
 	ji := &jobItem{
 		logs: []data.LogsWithTime{
@@ -215,7 +215,7 @@ func TestRenderLogsStripsANSIEscapes(t *testing.T) {
 }
 
 func TestFlatChecksCanSelectChecksImperatively(t *testing.T) {
-	m := NewModel("dlvhdr/gh-dash", "1", ModelOpts{Flat: true})
+	m := NewModel("dlvhdr/gh-dehub", "1", ModelOpts{Flat: true})
 	m.SetSize(80, 20)
 	first := NewCheckItem(data.WorkflowJob{
 		Id:         "1",
@@ -255,7 +255,7 @@ func TestFlatChecksCanSelectChecksImperatively(t *testing.T) {
 }
 
 func TestActionViewDoesNotBindCommaDotForCheckNavigation(t *testing.T) {
-	m := NewModel("dlvhdr/gh-dash", "1", ModelOpts{Flat: true})
+	m := NewModel("dlvhdr/gh-dehub", "1", ModelOpts{Flat: true})
 
 	for _, key := range m.checksList.KeyMap.CursorUp.Keys() {
 		if key == "," {
@@ -270,7 +270,7 @@ func TestActionViewDoesNotBindCommaDotForCheckNavigation(t *testing.T) {
 }
 
 func TestEmbeddedActionViewDoesNotHandleKeyPresses(t *testing.T) {
-	m := NewModel("dlvhdr/gh-dash", "1", ModelOpts{Flat: true})
+	m := NewModel("dlvhdr/gh-dehub", "1", ModelOpts{Flat: true})
 	first := NewCheckItem(data.WorkflowJob{
 		Id:         "1",
 		Name:       "first",
@@ -300,7 +300,7 @@ func TestEmbeddedActionViewDoesNotHandleKeyPresses(t *testing.T) {
 }
 
 func TestFocusLogsSearchAllowsEmbeddedSearchInputKeys(t *testing.T) {
-	m := NewModel("dlvhdr/gh-dash", "1", ModelOpts{Flat: true})
+	m := NewModel("dlvhdr/gh-dehub", "1", ModelOpts{Flat: true})
 	m.FocusLogsSearch()
 	if !m.logsInput.Focused() {
 		t.Fatal("expected logs input to be focused")
@@ -313,7 +313,7 @@ func TestFocusLogsSearchAllowsEmbeddedSearchInputKeys(t *testing.T) {
 }
 
 func TestEscClearsFocusedLogsSearch(t *testing.T) {
-	m := NewModel("dlvhdr/gh-dash", "1", ModelOpts{Flat: true})
+	m := NewModel("dlvhdr/gh-dehub", "1", ModelOpts{Flat: true})
 	m.FocusLogsSearch()
 
 	next, _ := m.UpdateEmbedded(tea.KeyPressMsg{Text: "x", Code: 'x'})
@@ -328,7 +328,7 @@ func TestEscClearsFocusedLogsSearch(t *testing.T) {
 }
 
 func TestFocusLogsSearchKeepsChecksPaneVisible(t *testing.T) {
-	m := NewModel("dlvhdr/gh-dash", "1", ModelOpts{Flat: true})
+	m := NewModel("dlvhdr/gh-dehub", "1", ModelOpts{Flat: true})
 	m.SetSize(100, 30)
 	check := NewCheckItem(data.WorkflowJob{
 		Id:         "1",
@@ -366,7 +366,7 @@ func TestMergingOfDifferentWorkflowJobs(t *testing.T) {
 		res.Data.Resource.PullRequest.Commits.Nodes[0].Commit.StatusCheckRollup.Contexts.Nodes[0].CheckRun,
 	)
 
-	m := NewModel("dlvhdr/gh-dash", "1", ModelOpts{})
+	m := NewModel("dlvhdr/gh-dehub", "1", ModelOpts{})
 	m.prWithChecks = res.Data.Resource.PullRequest
 
 	runs := makeWorkflowRuns(

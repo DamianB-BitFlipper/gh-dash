@@ -5,8 +5,8 @@ import (
 
 	"charm.land/lipgloss/v2"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/utils"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/utils"
 )
 
 func (m *Model) renderChangesOverview() string {

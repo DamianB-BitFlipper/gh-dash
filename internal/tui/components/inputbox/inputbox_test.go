@@ -6,9 +6,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/stretchr/testify/require"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/fuzzyselect"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/theme"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/fuzzyselect"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/theme"
 )
 
 func newTestInputBox() Model {

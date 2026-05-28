@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://github.com/dlvhdr/dehub/schema.json
+prSections:
+  - title: Mine
+    filters: is:open author:@me repo:dlvhdr/dehub updated:>={{ nowModify "-3w" }} sort:updated-desc
+    layout:
+      author:
+        hidden: true
+      repoName:
+        hidden: true
+  - title: Review
+    filters: repo:dlvhdr/dehub -author:@me is:open updated:>={{ nowModify "-2.5w" }}
+    layout:
+      repoName:
+        hidden: true
+  - title: All
+    filters: repo:dlvhdr/dehub
+issuesSections:
+  - title: Open
+    filters: repo:dlvhdr/dehub is:open sort:reactions
+  - title: Bugs
+    filters: repo:dlvhdr/dehub is:open sort:reactions label:bug
+  - title: Features
+    filters: repo:dlvhdr/dehub is:open sort:reactions label:feat
+  - title: High
+    filters: repo:dlvhdr/dehub is:open sort:reactions label:high-pri
+  - title: Mid
+    filters: repo:dlvhdr/dehub is:open sort:reactions label:mid-pri
+  - title: Low
+    filters: repo:dlvhdr/dehub is:open sort:reactions label:low-pri
+  - title: Unlabeled
+    filters: repo:dlvhdr/dehub is:open sort:reactions -label:bug -label:feat
+  - title: All
+    filters: repo:dlvhdr/dehub sort:reactions
+
+defaults:
+  view: prs
+  refetchIntervalMinutes: 5
+  layout:
+    prs:
+      repoName:
+        hidden: true
+      base:
+        hidden: true
+
+  preview:
+    open: true
+  prsLimit: 20
+  issuesLimit: 20

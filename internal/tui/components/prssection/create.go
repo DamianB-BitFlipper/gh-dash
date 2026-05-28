@@ -9,13 +9,13 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/common"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/fuzzyselect"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prrow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/tasks"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/common"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/fuzzyselect"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/tasks"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
 )
 
 type createPRCreatedMsg struct {

@@ -1,9 +1,10 @@
 PIPEDIFFSHUB_DIR ?= tools/pipediffshub
 DIFFVIEWER_DIST := internal/tui/diffviewer/dist
+LOCAL_EXTENSION_DIR := .dehub-local-extension/gh-dehub
 
-.PHONY: build build-pipediffshub build-gh-dash local-install
+.PHONY: build build-pipediffshub build-dehub local-install
 
-build: build-pipediffshub build-gh-dash
+build: build-pipediffshub build-dehub
 
 build-pipediffshub:
 	cd $(PIPEDIFFSHUB_DIR) && bun install
@@ -12,8 +13,12 @@ build-pipediffshub:
 	mkdir -p internal/tui/diffviewer
 	cp -R $(PIPEDIFFSHUB_DIR)/dist $(DIFFVIEWER_DIST)
 
-build-gh-dash:
-	go build .
+build-dehub:
+	go build -o gh-dehub .
 
 local-install: build
-	gh ext remove dash && gh ext install .
+	gh ext remove dehub 2>/dev/null || true
+	rm -rf $(LOCAL_EXTENSION_DIR)
+	mkdir -p $(LOCAL_EXTENSION_DIR)
+	cp gh-dehub $(LOCAL_EXTENSION_DIR)/gh-dehub
+	cd $(LOCAL_EXTENSION_DIR) && gh ext install .

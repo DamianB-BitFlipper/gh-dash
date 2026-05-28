@@ -19,12 +19,12 @@ func bytesContains(t *testing.T, bts []byte, str string) bool {
 // 			contains := bytesContains(t, bts, text)
 // 			if _, debug := os.LookupEnv("DEBUG"); debug {
 // 				if contains {
-// 					f, _ := os.CreateTemp("", "gh-dash-debug")
+// 					f, _ := os.CreateTemp("", "dehub-debug")
 // 					defer f.Close()
 // 					fmt.Fprintf(f, "%s", string(bts))
 // 					log.Error("✅ wrote to file while looking for text", "file", f.Name(), "text", text)
 // 				} else {
-// 					f, _ := os.CreateTemp("", "not-found-gh-dash-debug")
+// 					f, _ := os.CreateTemp("", "not-found-dehub-debug")
 // 					defer f.Close()
 // 					fmt.Fprintf(f, "%s", string(bts))
 // 					log.Error("❌ text not found", "file", f.Name(), "text", text)

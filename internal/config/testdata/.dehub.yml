@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://github.com/dlvhdr/dehub/schema.json
+prSections:
+  - title: Mine
+    filters: is:open author:@me repo:dlvhdr/dehub updated:>={{ nowModify "-3w" }} sort:updated-desc
+    layout:
+      author:
+        hidden: true
+      repoName:
+        hidden: true
+  - title: Review
+    filters: repo:dlvhdr/dehub -author:@me is:open updated:>={{ nowModify "-2.5w" }}
+    layout:
+      repoName:
+        hidden: true

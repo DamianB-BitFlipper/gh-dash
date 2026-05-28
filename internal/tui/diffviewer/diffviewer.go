@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	BuiltInPager         = "builtin:pipediffshub"
+	BuiltInPager        = "builtin:pipediffshub"
 	heartbeatTimeout    = 2 * time.Second
 	closeGrace          = 1500 * time.Millisecond
 	heartbeatCheckEvery = 500 * time.Millisecond
@@ -33,6 +33,7 @@ var embeddedDist embed.FS
 type Options struct {
 	Diff      []byte
 	SourceURL string
+	Title     string
 }
 
 func IsBuiltInPager(pager string) bool {
@@ -61,6 +62,7 @@ func Open(ctx context.Context, opts Options) error {
 		diff:      opts.Diff,
 		dist:      dist,
 		sourceURL: opts.SourceURL,
+		title:     opts.Title,
 		shutdown:  make(chan struct{}),
 	}
 	server := &http.Server{
@@ -114,6 +116,7 @@ type serverState struct {
 	diff      []byte
 	dist      fs.FS
 	sourceURL string
+	title     string
 
 	mu                sync.Mutex
 	receivedHeartbeat bool
@@ -132,7 +135,7 @@ func (s *serverState) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "/meta":
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(map[string]string{"sourceURL": s.sourceURL})
+		_ = json.NewEncoder(w).Encode(map[string]string{"sourceURL": s.sourceURL, "title": s.title})
 	case "/heartbeat":
 		s.recordHeartbeat()
 		w.WriteHeader(http.StatusNoContent)

@@ -13,12 +13,12 @@ tasks:
   build:
     desc: Build
     cmds:
-      - go build .
+      - go build -o gh-dehub .
 
   uninstall:
     desc: Uninstall from the gh extensions
     cmd: |
-      if gh ext list | grep --quiet 'gh dash'; then echo "🕐 Uninstalling..."; gh ext remove dash; fi
+      if gh ext list | grep --quiet 'gh dehub'; then echo "🕐 Uninstalling dehub..."; gh ext remove dehub; fi
       exit 0
 
   install:
@@ -26,15 +26,20 @@ tasks:
     cmds:
       - task: build
       - task: uninstall
-      - echo "🕐 Installing local build..." && gh ext install .
-      - gh dash --version
+      - |
+        echo "🕐 Installing local build..."
+        rm -rf .dehub-local-extension/gh-dehub
+        mkdir -p .dehub-local-extension/gh-dehub
+        cp gh-dehub .dehub-local-extension/gh-dehub/gh-dehub
+        cd .dehub-local-extension/gh-dehub && gh ext install .
+      - gh dehub --version
 
   install:prod:
     desc: Install the latest available version as a gh extension
     cmds:
       - task: uninstall
-      - echo "🕐 Installing latest version..." && gh ext install dlvhdr/gh-dash
-      - gh dash --version
+      - echo "🕐 Installing latest version..." && gh ext install dlvhdr/gh-dehub
+      - gh dehub --version
 
   debug:
     desc: Run in debug mode. Run `task logs` to watch the logs.
@@ -127,17 +132,3 @@ tasks:
     cmds:
       - task: docs-build
       - cd docs && pnpm preview
-
-  docs-sponsors:
-    desc: Update OpenCollective and GitHub sponsors list
-    cmds:
-      - which sponsors || go install github.com/goreleaser/sponsors@main
-      - sponsors generate --config gh://dlvhdr/sponsors/sponsors.yml sponsors.json
-      - sponsors apply sponsors.json gh://dlvhdr/sponsors/readme.tpl.md ./README.md
-    sources:
-      - ./README.md
-      - ./.github/sponsors/sponsors.json
-      - ./.github/sponsors/sponsors.yml
-    generates:
-      - ./README.md
-      - ./.github/sponsors/sponsors.json

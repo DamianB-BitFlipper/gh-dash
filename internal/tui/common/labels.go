@@ -9,8 +9,8 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/yuin/goldmark-emoji/definition"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
 )
 
 func renderLabelPill(label data.Label, pillStyle lipgloss.Style, suffix string) string {

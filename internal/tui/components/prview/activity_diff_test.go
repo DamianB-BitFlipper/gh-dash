@@ -8,11 +8,11 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/stretchr/testify/require"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prrow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/theme"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/theme"
 )
 
 func TestParseReviewDiffHunk(t *testing.T) {

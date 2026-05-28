@@ -1,0 +1,14 @@
+diff --git a/dist/components/CodeView.js b/dist/components/CodeView.js
+index c51118a690916699ebdac23dabf4e46c5ab04bf4..0ba8fd1edda5fca184a3225835c0fb15d74ee19d 100644
+--- a/dist/components/CodeView.js
++++ b/dist/components/CodeView.js
+@@ -1215,8 +1215,7 @@ var CodeView = class CodeView {
+ 		this.renderState.stickyTop = stickyTop;
+ 		this.renderState.stickyBottom = stickyBottom;
+ 		this.stickyOffset.style.height = `${stickyTop}px`;
+-		const randomOffset = (Math.random() * itemMetrics.lineHeight >> 0) * -1;
+-		const stickyJitter = -Math.max(stickyContainerHeight + randomOffset, 0) + height;
++		const stickyJitter = -Math.max(stickyContainerHeight, 0) + height;
+ 		this.stickyContainer.style.top = `${stickyJitter}px`;
+ 		this.stickyContainer.style.bottom = `${stickyJitter + itemMetrics.diffHeaderHeight}px`;
+ 	}

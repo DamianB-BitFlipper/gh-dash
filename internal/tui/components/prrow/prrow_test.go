@@ -7,14 +7,14 @@ import (
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/compat"
 	graphql "github.com/cli/shurcooL-graphql"
-	"github.com/dlvhdr/gh-dash/v4/internal/checks"
+	"github.com/dlvhdr/gh-dehub/v4/internal/checks"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/table"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/theme"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/table"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/theme"
 )
 
 func TestGetStatusChecksRollup(t *testing.T) {

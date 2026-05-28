@@ -11,11 +11,13 @@ import (
 
 	// "charm.land/x/exp/teatest"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/section"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/tabs/testdata"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/theme"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/common"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/section"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/tabs/testdata"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/theme"
 )
 
 func TestViewSectionTabsDoesNotExceedAvailableWidth(t *testing.T) {
@@ -58,6 +60,28 @@ func TestViewSectionTabsReservesWidthForInlineSearch(t *testing.T) {
 	require.LessOrEqual(t, lipgloss.Width(view), 55)
 	require.True(t, strings.Contains(plain, "repo:owner/repo"))
 	require.Less(t, strings.Index(plain, "repo:owner/repo"), strings.Index(plain, "platform"))
+}
+
+func TestViewDoesNotRenderLogo(t *testing.T) {
+	ctx := newTabsTestContext(t)
+	m := NewModel(ctx)
+	m.SetSections([]section.Section{
+		&testdata.TestSection{Config: config.SectionConfig{Title: "Mine"}},
+	})
+
+	view := ansi.Strip(m.View())
+
+	require.NotContains(t, view, strings.Split(constants.Logo, "\n")[0])
+}
+
+func TestViewHeightMatchesTabsHeight(t *testing.T) {
+	ctx := newTabsTestContext(t)
+	m := NewModel(ctx)
+	m.SetSections([]section.Section{
+		&testdata.TestSection{Config: config.SectionConfig{Title: "Mine"}},
+	})
+
+	require.Equal(t, common.TabsHeight, lipgloss.Height(m.View()))
 }
 
 func newTabsTestContext(t *testing.T) *context.ProgramContext {

@@ -1,6 +1,6 @@
 prSections:
   - title: Mine
-    filters: is:open author:@me repo:dlvhdr/gh-dash
+    filters: is:open author:@me repo:dlvhdr/dehub
     layout:
       repo:
         hidden: true

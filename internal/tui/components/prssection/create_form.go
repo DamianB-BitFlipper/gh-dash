@@ -8,9 +8,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/fuzzyselect"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/fuzzyselect"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
 )
 
 type createPRForm struct {
@@ -230,14 +230,16 @@ func (f createPRForm) View() string {
 		f.renderField(width, ""),
 	}
 	if f.mode == createPRFormModeCreate {
-		parts = append(parts,
+		parts = append(
+			parts,
 			f.renderField(width, label(f.isHeadActive(), "Head branch")),
 			f.renderField(width, f.head.View()),
 			f.renderField(width, headBranchList),
 			f.renderField(width, ""),
 		)
 	}
-	parts = append(parts,
+	parts = append(
+		parts,
 		f.renderField(width, label(f.isBaseActive(), "Base branch")),
 		f.renderField(width, f.base.View()),
 		f.renderField(width, baseBranchList),

@@ -27,7 +27,7 @@ export function GET() {
         builtin: {
           title: "Builtin Command",
           description:
-            "One of gh-dash's builtin commands that will run when you press the key combination",
+            "One of dehub's builtin commands that will run when you press the key combination",
           type: "string",
         },
       },

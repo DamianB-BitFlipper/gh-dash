@@ -8,10 +8,10 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/notificationrow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/notificationrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
 )
 
 // noopStartTask is a stub that returns nil for testing
@@ -131,7 +131,7 @@ func TestMarkAsDoneStoresCorrectTimestamp(t *testing.T) {
 	defer func() { markNotificationDoneFunc = origFunc }()
 
 	// Set up a DoneStore backed by a temp file so we don't touch real state.
-	tempDir, err := os.MkdirTemp("", "gh-dash-markdone-test")
+	tempDir, err := os.MkdirTemp("", "dehub-markdone-test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}

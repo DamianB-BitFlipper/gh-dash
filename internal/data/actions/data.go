@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	sharedchecks "github.com/dlvhdr/gh-dash/v4/internal/checks"
-	api "github.com/dlvhdr/gh-dash/v4/internal/data/actionsapi"
+	sharedchecks "github.com/dlvhdr/gh-dehub/v4/internal/checks"
+	api "github.com/dlvhdr/gh-dehub/v4/internal/data/actionsapi"
 )
 
 // WorkflowRun holds all the the jobs that were part of it

@@ -9,11 +9,12 @@ gomod:
   env:
     - GOPROXY=https://proxy.golang.org,direct
     - GOSUMDB=sum.golang.org
-    - GOPRIVATE=github.com/dlvhdr/gh-dash
+    - GOPRIVATE=github.com/dlvhdr/gh-dehub
   mod: mod
 
 builds:
-  - env:
+  - binary: dehub
+    env:
       - CGO_ENABLED=0
     flags:
       - -tags=nodbus
@@ -32,10 +33,10 @@ builds:
       - "7"
     ldflags:
       - -s -w
-      - -X github.com/dlvhdr/gh-dash/cmd.Version={{.Version}}
-      - -X github.com/dlvhdr/gh-dash/cmd.Commit={{.Commit}}
-      - -X github.com/dlvhdr/gh-dash/cmd.Date={{.CommitDate}}
-      - -X github.com/dlvhdr/gh-dash/cmd.BuiltBy=goreleaser
+      - -X github.com/dlvhdr/gh-dehub/v4/cmd.Version={{.Version}}
+      - -X github.com/dlvhdr/gh-dehub/v4/cmd.Commit={{.Commit}}
+      - -X github.com/dlvhdr/gh-dehub/v4/cmd.Date={{.CommitDate}}
+      - -X github.com/dlvhdr/gh-dehub/v4/cmd.BuiltBy=goreleaser
     # Skipping builds for Android non-ARM64 architectures as they need CGO enabled
     # https://goreleaser.com/limitations/cgo/
     ignore:
@@ -51,7 +52,7 @@ builds:
 archives:
   - formats:
       - binary
-    name_template: "gh-dash_{{ .Tag }}_{{ .Os }}-{{ .Arch }}{{if .Arm}}_{{.Arm}}{{end}}"
+    name_template: "dehub_{{ .Tag }}_{{ .Os }}-{{ .Arch }}{{if .Arm}}_{{.Arm}}{{end}}"
 checksum:
   name_template: "checksums.txt"
 snapshot:
@@ -65,22 +66,20 @@ release:
 
     To update run:
     ```bash
-    gh extension upgrade dash
+    gh extension upgrade dehub
     ```
 
   footer: |
     ---
 
-    If you enjoy `dash`, consider [making a donation](https://www.gh-dash.dev/donating) ❤️
-
     Have questions? Join our [Discord community](https://discord.gg/SXNXp9NctV)!
 
     <br />
 
-    <a  class="underline: none;" href="https://gh-dash.dev">
+    <a  class="underline: none;" href="https://dehub.dev">
       <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="https://gh-dash.dev/logo.png">
-        <img alt="DASH Logo" width="600" src="https://gh-dash.dev/logo-light.png">
+        <source media="(prefers-color-scheme: dark)" srcset="https://dehub.dev/logo.png">
+        <img alt="dehub Logo" width="600" src="https://dehub.dev/logo-light.png">
       </picture>
     </a>
 
@@ -93,7 +92,7 @@ announce:
   discord:
     enabled: true
     color: "8037112"
-    icon_url: "https://www.gh-dash.dev/favicon.png"
+    icon_url: "https://www.dehub.dev/favicon.png"
     # message_template: (Default) '{{ .ProjectName }} {{ .Tag }} is out! Check it out at {{ .ReleaseURL }}'.
 
 changelog:

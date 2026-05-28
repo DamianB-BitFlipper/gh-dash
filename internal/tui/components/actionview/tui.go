@@ -20,10 +20,10 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	zone "github.com/lrstanley/bubblezone/v2"
 
-	data "github.com/dlvhdr/gh-dash/v4/internal/data/actions"
-	api "github.com/dlvhdr/gh-dash/v4/internal/data/actionsapi"
-	parser "github.com/dlvhdr/gh-dash/v4/internal/data/actionsparser"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/theme"
+	data "github.com/dlvhdr/gh-dehub/v4/internal/data/actions"
+	api "github.com/dlvhdr/gh-dehub/v4/internal/data/actionsapi"
+	parser "github.com/dlvhdr/gh-dehub/v4/internal/data/actionsparser"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/theme"
 )
 
 type errMsg error

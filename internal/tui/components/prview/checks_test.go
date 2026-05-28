@@ -7,13 +7,13 @@ import (
 	graphql "github.com/cli/shurcooL-graphql"
 	"github.com/stretchr/testify/require"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/checks"
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prrow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/theme"
+	"github.com/dlvhdr/gh-dehub/v4/internal/checks"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/theme"
 )
 
 type checksTestOptions struct {
@@ -567,7 +567,7 @@ func TestGetChecksStats_Mixed(t *testing.T) {
 }
 
 func TestViewChecksBar_NarrowWidth_NoPanic(t *testing.T) {
-	// Regression test for https://github.com/dlvhdr/gh-dash/issues/795
+	// Regression test for https://github.com/dlvhdr/gh-dehub/issues/795
 	// When the sidebar is very narrow, viewChecksBar() computes a negative
 	// width for strings.Repeat, which panics.
 	opts := checksTestOptions{

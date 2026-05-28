@@ -2,7 +2,7 @@
 $schema: https://json-schema.org/draft/2020-12/schema
 $id: theme.schema.yaml
 title: Theme Options
-description: Theme settings for gh-dash
+description: Theme settings for dehub
 type: object
 schematize:
   format: yaml
@@ -30,8 +30,8 @@ schematize:
     more.
 
     [sref:`defaults`]:      defaults
-    [sref:`prSections`]:    gh-dash.prSections
-    [sref:`issueSections`]: gh-dash.issueSections
+    [sref:`prSections`]:    dehub.prSections
+    [sref:`issueSections`]: dehub.issueSections
     [hex color]:            https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color
     [`color-hex.com`]:      https://www.color-hex.com/
 required:

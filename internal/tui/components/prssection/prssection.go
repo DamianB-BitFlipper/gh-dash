@@ -11,16 +11,16 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/log/v2"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prrow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/section"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/table"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/tasks"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/keys"
-	"github.com/dlvhdr/gh-dash/v4/internal/utils"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/section"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/table"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/tasks"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/keys"
+	"github.com/dlvhdr/gh-dehub/v4/internal/utils"
 )
 
 const SectionType = "pr"
@@ -231,9 +231,9 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 	case SectionPullRequestsFetchedMsg:
 		if m.LastFetchTaskId == msg.TaskId {
 			if m.PageInfo != nil {
-				m.Prs = append(m.Prs, msg.Prs...)
+				m.Prs = appendUniquePRs(m.Prs, msg.Prs...)
 			} else {
-				m.Prs = msg.Prs
+				m.Prs = uniquePRs(msg.Prs)
 			}
 			m.sortPRs()
 			m.TotalCount = msg.TotalCount
@@ -414,6 +414,8 @@ func (m *Model) applyUpdatePRMsg(msg tasks.UpdatePRMsg) bool {
 }
 
 func (m *Model) mergeRefreshedPRs(refreshed []prrow.Data) {
+	refreshed = uniquePRs(refreshed)
+
 	oldByURL := map[string]prrow.Data{}
 	for _, pr := range m.Prs {
 		if pr.Primary != nil && pr.Primary.Url != "" {
@@ -434,6 +436,32 @@ func (m *Model) mergeRefreshedPRs(refreshed []prrow.Data) {
 	}
 
 	m.Prs = refreshed
+}
+
+func appendUniquePRs(existing []prrow.Data, incoming ...prrow.Data) []prrow.Data {
+	for _, pr := range incoming {
+		if containsPR(existing, pr) {
+			continue
+		}
+		existing = append(existing, pr)
+	}
+	return existing
+}
+
+func uniquePRs(prs []prrow.Data) []prrow.Data {
+	if len(prs) < 2 {
+		return prs
+	}
+	return appendUniquePRs(make([]prrow.Data, 0, len(prs)), prs...)
+}
+
+func containsPR(prs []prrow.Data, target prrow.Data) bool {
+	for _, pr := range prs {
+		if samePR(pr, target) {
+			return true
+		}
+	}
+	return false
 }
 
 func canPreserveEnrichedPR(old, refreshed prrow.Data) bool {

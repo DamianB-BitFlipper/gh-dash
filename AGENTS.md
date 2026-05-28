@@ -8,11 +8,11 @@
 - `task test:one` and `task test:rerun` require `gotip`; do not assume they exist in a clean environment.
 - Formatting is `task fmt`, which runs `gofumpt -w $(git ls-files '*.go')`; do not substitute plain `gofmt` when matching repo formatting.
 - Lint is `task lint`, which runs `golangci-lint run --path-mode=abs --config=.golangci.yml --timeout=5m` with `GOEXPERIMENT` unset.
-- To install the local extension, run `go build . && gh ext remove dash && gh ext install . && gh dash --version`.
+- To install the local extension, run `go build . && gh ext remove dehub && gh ext install . && gh dehub --version`.
 - Debug TUI runs are `task debug -- <args>` or `DEBUG=true go run . --debug <args>`; logs go to `./debug.log`, and `LOG_LEVEL=warn` is supported.
 
 ## Architecture
-- Entrypoint is `gh-dash.go` -> `cmd.Execute()`; Cobra command setup and config/debug/profile wiring live in `cmd/root.go`.
+- Entrypoint is `dehub.go` -> `cmd.Execute()`; Cobra command setup and config/debug/profile wiring live in `cmd/root.go`.
 - TUI state starts in `internal/tui/ui.go` (`tui.Model`); Bubble Tea section models live under `internal/tui/components/*section`.
 - Shared section behavior is in `internal/tui/components/section`; PR rows/views, issue views, notifications, and sidebars are separate component packages.
 - GitHub data fetching lives in `internal/data` and mostly uses GitHub GraphQL via `github.com/cli/go-gh/v2`; command/task side effects are under `internal/tui/components/tasks`.
@@ -20,7 +20,7 @@
 - Docs are a separate Astro app under `docs/` with `pnpm@10.14.0`; use `task docs`, `task docs-build`, or `cd docs && pnpm build` for docs-only work.
 
 ## Config And Feature Flags
-- Executable config precedence in `internal/config/parser.go`: `--config`, then `GH_DASH_CONFIG`, then repo-local `.gh-dash.yml`/`.gh-dash.yaml`, merged over global `$XDG_CONFIG_HOME/gh-dash/config.yml` or `~/.config/gh-dash/config.yml`.
+- Executable config precedence in `internal/config/parser.go`: `--config`, then `DEHUB_CONFIG`, then repo-local `.dehub.yml`/`.dehub.yaml`, merged over global `$XDG_CONFIG_HOME/dehub/config.yml` or `~/.config/dehub/config.yml`.
 - If the global config file is missing, the app creates it before loading config; tests that should avoid this use `Location.SkipGlobalConfig`.
 - Config merge is not a plain deep merge: keybindings are merged by key, while `prSections`, `issuesSections`, and `notificationsSections` from the provided config replace the global sections.
 - `FF_MOCK_DATA` makes PR fetching use a localhost GraphQL mock at `https://localhost:3000` with a fake token and disabled TLS verification.

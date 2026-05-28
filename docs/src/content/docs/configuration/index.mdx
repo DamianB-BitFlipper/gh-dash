@@ -4,24 +4,24 @@ title: How to Configure
 
 import { Aside, LinkCard, CardGrid } from "@astrojs/starlight/components";
 
-`dash` has extensive configuration options.
+`dehub` has extensive configuration options.
 
-- Modify the default config which is usually under `$HOME/.config/gh-dash/config.yml`.
+- Modify the default config which is usually under `$HOME/.config/dehub/config.yml`.
 - Use the [`--config`][01] flag to specify a different configuration file.
-- Create a `.gh-dash.yml` file in a repo for project specific configuration.
+- Create a `.dehub.yml` file in a repo for project specific configuration.
 
 <details>
   <summary>Give me more details!</summary>
   Using the following logic:
-1. If `$GH_DASH_CONFIG` is a non-empty string, `dash` will use this file for
+1. If `$DEHUB_CONFIG` is a non-empty string, `dehub` will use this file for
    its configuration.
-2. If `$GH_DASH_CONFIG` isn't set and you're in a git repository, it will look for `.gh-dash.yml` or `.gh-dash.yaml`
+2. If `$DEHUB_CONFIG` isn't set and you're in a git repository, it will look for `.dehub.yml` or `.dehub.yaml`
    in the repository root.
 3. If neither of the above applies, then:
-  - If `$XDG_CONFIG_HOME` is a non-empty string, the default path is `$XDG_CONFIG_HOME/gh-dash/config.yml`.
+  - If `$XDG_CONFIG_HOME` is a non-empty string, the default path is `$XDG_CONFIG_HOME/dehub/config.yml`.
   - If `$XDG_CONFIG_HOME` isn't set, then:
-    - On Linux and macOS systems, the default path is `$HOME/.config/gh-dash/config.yml`.
-    - On Windows systems, the default path is `%USERPROFILE%\.config\gh-dash\config.yml`.
+    - On Linux and macOS systems, the default path is `$HOME/.config/dehub/config.yml`.
+    - On Windows systems, the default path is `%USERPROFILE%\.config\dehub\config.yml`.
 
 </details>
 
@@ -38,7 +38,7 @@ import { Aside, LinkCard, CardGrid } from "@astrojs/starlight/components";
 
 ## Options
 
-The configuration for `dash` is schematized. The pages in this section list the configuration
+The configuration for `dehub` is schematized. The pages in this section list the configuration
 options, their defaults, and how you can use them.
 
 ### Schema

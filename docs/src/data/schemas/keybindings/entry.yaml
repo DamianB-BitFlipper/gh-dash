@@ -53,7 +53,7 @@ properties:
         [sref:`key`]: keybindings.entry.key
   builtin:
     title: Builtin Command
-    description: One of gh-dash's builtin commands that will run when you press the key combination
+    description: One of dehub's builtin commands that will run when you press the key combination
     type: string
     schematize:
       weight: 2

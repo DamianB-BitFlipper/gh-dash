@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/dlvhdr/gh-dash/v4/cmd"
+	"github.com/dlvhdr/gh-dehub/v4/cmd"
 )
 
 func main() {

@@ -8,7 +8,7 @@ import (
 
 func TestNotificationIDStore(t *testing.T) {
 	// Create a temp directory for test files
-	tempDir, err := os.MkdirTemp("", "gh-dash-test")
+	tempDir, err := os.MkdirTemp("", "dehub-test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
@@ -277,7 +277,7 @@ func TestNotificationIDStore(t *testing.T) {
 		}
 
 		specialIds := []string{
-			"id-with-dash",
+			"id-with-dehub",
 			"id_with_underscore",
 			"id.with.dots",
 			"id:with:colons",

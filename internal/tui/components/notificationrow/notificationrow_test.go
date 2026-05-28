@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
 )
 
 func TestGetReasonDescription(t *testing.T) {

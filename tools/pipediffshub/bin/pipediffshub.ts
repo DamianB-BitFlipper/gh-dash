@@ -71,7 +71,7 @@ async function main() {
         });
       }
       if (url.pathname === '/meta') {
-        return Response.json({ sourceURL }, { headers: { 'cache-control': 'no-store' } });
+        return Response.json({ sourceURL, title: '' }, { headers: { 'cache-control': 'no-store' } });
       }
       if (url.pathname === '/heartbeat') {
         receivedHeartbeat = true;

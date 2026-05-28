@@ -11,9 +11,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/log/v2"
 
-	data "github.com/dlvhdr/gh-dash/v4/internal/data/actions"
-	api "github.com/dlvhdr/gh-dash/v4/internal/data/actionsapi"
-	apputils "github.com/dlvhdr/gh-dash/v4/internal/utils"
+	data "github.com/dlvhdr/gh-dehub/v4/internal/data/actions"
+	api "github.com/dlvhdr/gh-dehub/v4/internal/data/actionsapi"
+	apputils "github.com/dlvhdr/gh-dehub/v4/internal/utils"
 )
 
 type jobItem struct {

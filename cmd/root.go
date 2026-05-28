@@ -20,11 +20,11 @@ import (
 	zone "github.com/lrstanley/bubblezone/v2"
 	"github.com/spf13/cobra"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/git"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	dctx "github.com/dlvhdr/gh-dash/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/git"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	dctx "github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
 )
 
 var (
@@ -40,7 +40,7 @@ var (
 	logo = lipgloss.NewStyle().Foreground(dctx.LogoColor).MarginBottom(1).SetString(constants.Logo)
 
 	rootCmd = &cobra.Command{
-		Use: "gh dash",
+		Use: "gh dehub",
 		Long: lipgloss.JoinVertical(
 			lipgloss.Left,
 			logo.Render(),
@@ -49,24 +49,24 @@ var (
 			lipgloss.NewStyle().
 				Faint(true).
 				Italic(true).
-				Render("Visit https://gh-dash.dev for the docs."),
+				Render("Visit https://github.com/dlvhdr/dehub for the docs."),
 		),
 		Short:   "A rich terminal UI for GitHub that doesn't break your flow.",
 		Version: "",
 		Example: `
 # Running without arguments will either:
 #   - Use the global configuration file
-#   - Use a local .gh-dash.yml file if in a git repo
-gh dash
+#   - Use a local .dehub.yml file if in a git repo
+gh dehub
 
 # Run with a specific configuration file
-gh dash --config /path/to/configuration/file.yml
+gh dehub --config /path/to/configuration/file.yml
 
 # Run with debug logging to debug.log
-gh dash --debug
+gh dehub --debug
 
 # Print version
-gh dash -v
+gh dehub -v
 	`,
 		Args: cobra.MaximumNArgs(1),
 	}
@@ -171,9 +171,9 @@ func init() {
 		"",
 		`use this configuration file
 (default lookup:
-  1. a .gh-dash.yml file if inside a git repo
-  2. $GH_DASH_CONFIG env var
-  3. $XDG_CONFIG_HOME/gh-dash/config.yml
+  1. a .dehub.yml file if inside a git repo
+  2. $DEHUB_CONFIG env var
+  3. $XDG_CONFIG_HOME/dehub/config.yml
 )`,
 	)
 	err := rootCmd.MarkPersistentFlagFilename("config", "yaml", "yml")
@@ -187,7 +187,7 @@ func init() {
 			lipgloss.Left,
 			"",
 			logo.Render(),
-			`gh-dash {{printf "version %s\n" .Version}}`,
+			`dehub {{printf "version %s\n" .Version}}`,
 		),
 	)
 
@@ -207,7 +207,7 @@ func init() {
 		"help",
 		"h",
 		false,
-		"help for gh-dash",
+		"help for dehub",
 	)
 
 	rootCmd.Run = func(_ *cobra.Command, args []string) {

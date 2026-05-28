@@ -16,9 +16,8 @@ import catppuccinSrc from "../assets/catpuccin.png";
 import gruvSrc from "../assets/gruv.png";
 import charmVidPreviewSrc from "../assets/charm-vid-preview.jpg";
 import DiffnavCard from "../components/DiffnavCard.astro";
-import DashHeroLogo from "../components/DashHeroLogo.astro";
+import DehubHeroLogo from "../components/DehubHeroLogo.astro";
 import Hero from "../components/Hero.astro";
-import SupportSection from "../components/SupportSection.astro";
 ---
 
 <style is:global>
@@ -28,16 +27,16 @@ import SupportSection from "../components/SupportSection.astro";
 </style>
 
 <StarlightPage
-  frontmatter={{ title: "DASH Through Your GitHub", template: "splash" }}
+  frontmatter={{ title: "dehub Through Your GitHub", template: "splash" }}
 >
   <div class="mt-0 2xl:mt-12">
     <Hero
       tagline="A rich terminal UI for GitHub that doesn't break your flow"
       videoUrl="overview"
-      githubUrl="https://github.com/dlvhdr/gh-dash"
+      githubUrl="https://github.com/dlvhdr/gh-dehub"
       getStartedUrl="/getting-started/"
     >
-      <DashHeroLogo />
+      <DehubHeroLogo />
     </Hero>
   </div>
   <div class="mt-32 mb-16 text-[var(--sl-color-gray-5)]">──◇──</div>
@@ -58,10 +57,6 @@ import SupportSection from "../components/SupportSection.astro";
   </div>
 
   <div class="mt-32 mb-12 text-[var(--sl-color-gray-5)]">──◇──</div>
-
-  <SupportSection />
-
-  <div class="mt-32 mb-8 text-[var(--sl-color-gray-5)]">──◇──</div>
 
   <h2 class="mb-16 !text-3xl">Features</h2>
 
@@ -110,7 +105,7 @@ issuesSections:
           <Image
             class="my-0 scale-160"
             src={helpSrc}
-            alt="screenshot of dash with the help menu open, you can see all the keybindings for PRs and what they do."
+            alt="screenshot of dehub with the help menu open, you can see all the keybindings for PRs and what they do."
           />
           <Image
             class="my-0 scale-160"
@@ -164,22 +159,22 @@ colors:
         <FadeImages>
           <Image
             src={catppuccinSrc}
-            alt="Dash running with the catppuccin theme"
+            alt="Dehub running with the catppuccin theme"
           />
-          <Image src={gruvSrc} alt="Dash running with the gruvbox theme" />
+          <Image src={gruvSrc} alt="Dehub running with the gruvbox theme" />
           <Image
             src={tokyonightSrc}
-            alt="Dash running with the tokyo-night theme"
+            alt="Dehub running with the tokyo-night theme"
           />
         </FadeImages>
       </Terminal>
     </Showcase>
   </div>
   <div class="mt-32 flex flex-col items-center">
-    <h2 class="mb-2">Why use DASH?</h2>
+    <h2 class="mb-2">Why use dehub?</h2>
     <p class="mb-6 text-center lg:w-[60ch]">
       Check out this 10/10 video by <a href="https://charm.sh">Charm ✨</a> explaining
-      how DASH can help you manage your GitHub experience
+      how dehub can help you manage your GitHub experience
     </p>
     <a href="https://www.youtube.com/watch?v=5omFxcNjBQk&t" target="_blank">
       <Image

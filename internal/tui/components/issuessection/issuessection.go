@@ -10,16 +10,16 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/issuerow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/section"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/table"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/tasks"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/keys"
-	"github.com/dlvhdr/gh-dash/v4/internal/utils"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/issuerow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/section"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/table"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/tasks"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/keys"
+	"github.com/dlvhdr/gh-dehub/v4/internal/utils"
 )
 
 const SectionType = "issue"
@@ -152,11 +152,13 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 				}
 				if msg.AddedAssignees != nil {
 					currIssue.Assignees.Nodes = addAssignees(
-						currIssue.Assignees.Nodes, msg.AddedAssignees.Nodes)
+						currIssue.Assignees.Nodes, msg.AddedAssignees.Nodes,
+					)
 				}
 				if msg.RemovedAssignees != nil {
 					currIssue.Assignees.Nodes = removeAssignees(
-						currIssue.Assignees.Nodes, msg.RemovedAssignees.Nodes)
+						currIssue.Assignees.Nodes, msg.RemovedAssignees.Nodes,
+					)
 				}
 				m.Issues[i] = currIssue
 				m.sortIssues()
@@ -462,7 +464,8 @@ func FetchAllSections(
 		sections = append(sections, &sectionModel)
 		fetchIssuesCmds = append(
 			fetchIssuesCmds,
-			sectionModel.FetchNextPageSectionRows()...)
+			sectionModel.FetchNextPageSectionRows()...,
+		)
 	}
 	return sections, tea.Batch(fetchIssuesCmds...)
 }

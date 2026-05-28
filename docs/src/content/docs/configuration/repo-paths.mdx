@@ -21,7 +21,7 @@ command.
 ```yaml
 repoPaths:
   dlvhdr/*: ~/code/repos/*
-  dlvhdr/gh-dash: ~/code/gh-dash
+  dlvhdr/gh-dehub: ~/code/dehub
 ```
 
 In this example, the first key is defined with a wildcard (`*`) as `dlvhdr/*`, so the
@@ -34,9 +34,9 @@ folder, the dashboard will be able to checkout PRs for that repository locally.
 
 If the repository isn't found, the checkout command raises an error.
 
-The second key defines an exact mapping between the `dlvhdr/gh-dash` repository and the
-`~/code/gh-dash` folder. Because this is a non-wildcard mapping, the dashboard will use
-this value to resolve the repository path for `dlvhdr/gh-dash` even though there's also
+The second key defines an exact mapping between the `dlvhdr/gh-dehub` repository and the
+`~/code/dehub` folder. Because this is a non-wildcard mapping, the dashboard will use
+this value to resolve the repository path for `dlvhdr/gh-dehub` even though there's also
 an entry for `dlvhdr/*`.
 
 ## Pattern Properties
@@ -44,11 +44,11 @@ an entry for `dlvhdr/*`.
 ### With a Wildcard
 
 If the key for an `repoPath` entry ends with a wildcard (`*`), its value must also have
-a wildcard. If a key ends with a wildcard but the value doesn't, `gh-dash` won't be
+a wildcard. If a key ends with a wildcard but the value doesn't, `dehub` won't be
 able to correctly map repositories to folders.
 
 ### Without a Wildcard
 
 If the key for an `repoPath` entry doesn't have a wildcard (`*`), its value must not
-have a wildcard. If a key ends without a wildcard but the value does, `gh-dash` won't
+have a wildcard. If a key ends without a wildcard but the value does, `dehub` won't
 be able to correctly map repositories to folders.

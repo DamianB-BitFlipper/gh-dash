@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	data "github.com/dlvhdr/gh-dash/v4/internal/data/actions"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/markdown"
+	data "github.com/dlvhdr/gh-dehub/v4/internal/data/actions"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/markdown"
 )
 
 const (

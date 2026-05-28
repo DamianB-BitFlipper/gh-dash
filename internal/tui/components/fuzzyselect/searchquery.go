@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
 )
 
 // SearchQuerySource implements the Source interface.

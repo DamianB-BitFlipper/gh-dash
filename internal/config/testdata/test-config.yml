@@ -1,29 +1,29 @@
-# yaml-language-server: $schema=https://gh-dash.dev/schema.json
+# yaml-language-server: $schema=https://dehub.dev/schema.json
 prSections:
   - title: Mine
-    filters: is:open author:@me repo:dlvhdr/gh-dash updated:>={{ nowModify "-3w" }} sort:updated-desc
+    filters: is:open author:@me repo:dlvhdr/dehub updated:>={{ nowModify "-3w" }} sort:updated-desc
     layout:
       author:
         hidden: true
       repoName:
         hidden: true
   - title: Review
-    filters: repo:dlvhdr/gh-dash -author:@me is:open updated:>={{ nowModify "-2.5w" }}
+    filters: repo:dlvhdr/dehub -author:@me is:open updated:>={{ nowModify "-2.5w" }}
     layout:
       repoName:
         hidden: true
   - title: All
-    filters: repo:dlvhdr/gh-dash
+    filters: repo:dlvhdr/dehub
     layout:
       repoName:
         hidden: true
 issuesSections:
   - title: Open
-    filters: author:@me repo:dlvhdr/gh-dash is:open -author:@me sort:reactions
+    filters: author:@me repo:dlvhdr/dehub is:open -author:@me sort:reactions
   - title: Creator
-    filters: author:@me repo:dlvhdr/gh-dash is:open
+    filters: author:@me repo:dlvhdr/dehub is:open
   - title: All
-    filters: repo:dlvhdr/gh-dash sort:reactions
+    filters: repo:dlvhdr/dehub sort:reactions
 
 pager:
   diff: diffnav

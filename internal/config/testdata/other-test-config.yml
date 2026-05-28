@@ -1,7 +1,7 @@
-# yaml-language-server: $schema=https://gh-dash.dev/schema.json
+# yaml-language-server: $schema=https://dehub.dev/schema.json
 prSections:
   - title: Mine
-    filters: is:open author:@me repo:dlvhdr/gh-dash
+    filters: is:open author:@me repo:dlvhdr/dehub
     layout:
       author:
         hidden: true

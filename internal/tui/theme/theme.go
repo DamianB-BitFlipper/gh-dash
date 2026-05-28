@@ -5,8 +5,8 @@ import (
 	"charm.land/lipgloss/v2/compat"
 	"charm.land/log/v2"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
 )
 
 type Theme struct {
@@ -175,7 +175,8 @@ func ParseTheme(cfg *config.Config) Theme {
 			cfg.Theme.Colors.Inline.Text.Warning,
 			DefaultTheme.WarningText,
 		)
-		log.Debug("error text",
+		log.Debug(
+			"error text",
 			"cfg",
 			cfg.Theme.Colors.Inline.Text.Error,
 			"default",

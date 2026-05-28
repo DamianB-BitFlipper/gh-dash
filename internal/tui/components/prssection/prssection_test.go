@@ -10,16 +10,16 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/stretchr/testify/require"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/fuzzyselect"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prompt"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prrow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/section"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/tasks"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/theme"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/fuzzyselect"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prompt"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/section"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/tasks"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/theme"
 )
 
 // newTestModel creates a minimal Model with the prompt confirmation box
@@ -186,6 +186,47 @@ func TestMergeRefreshedPRsPreservesEnrichedData(t *testing.T) {
 	require.Equal(t, "fresh title", m.Prs[0].Primary.Title)
 	require.True(t, m.Prs[0].IsEnriched)
 	require.Equal(t, "enriched title", m.Prs[0].Enriched.Title)
+}
+
+func TestMergeRefreshedPRsDedupesDuplicateRows(t *testing.T) {
+	url := "https://github.com/owner/repo/pull/1"
+	m := Model{}
+
+	m.mergeRefreshedPRs([]prrow.Data{
+		{Primary: &data.PullRequestData{Number: 1, Url: url, Title: "first"}},
+		{Primary: &data.PullRequestData{Number: 1, Url: url, Title: "duplicate"}},
+	})
+
+	require.Len(t, m.Prs, 1)
+	require.Equal(t, "first", m.Prs[0].Primary.Title)
+}
+
+func TestUniquePRsDedupesByRepoAndNumberWithoutURL(t *testing.T) {
+	prs := uniquePRs([]prrow.Data{
+		{Primary: &data.PullRequestData{Number: 1, Repository: data.Repository{NameWithOwner: "owner/repo"}, Title: "first"}},
+		{Primary: &data.PullRequestData{Number: 1, Repository: data.Repository{NameWithOwner: "owner/repo"}, Title: "duplicate"}},
+		{Primary: &data.PullRequestData{Number: 1, Repository: data.Repository{NameWithOwner: "other/repo"}, Title: "other repo"}},
+	})
+
+	require.Len(t, prs, 2)
+	require.Equal(t, "first", prs[0].Primary.Title)
+	require.Equal(t, "other repo", prs[1].Primary.Title)
+}
+
+func TestAppendUniquePRsSkipsExistingRows(t *testing.T) {
+	existing := []prrow.Data{
+		{Primary: &data.PullRequestData{Number: 1, Url: "https://github.com/owner/repo/pull/1", Title: "existing"}},
+	}
+	incoming := []prrow.Data{
+		{Primary: &data.PullRequestData{Number: 1, Url: "https://github.com/owner/repo/pull/1", Title: "duplicate"}},
+		{Primary: &data.PullRequestData{Number: 2, Url: "https://github.com/owner/repo/pull/2", Title: "new"}},
+	}
+
+	prs := appendUniquePRs(existing, incoming...)
+
+	require.Len(t, prs, 2)
+	require.Equal(t, "existing", prs[0].Primary.Title)
+	require.Equal(t, "new", prs[1].Primary.Title)
 }
 
 func TestMergeRefreshedPRsInvalidatesStaleEnrichedState(t *testing.T) {
@@ -464,7 +505,8 @@ func TestCreatePRFetchesCreatedPRFromOutputURL(t *testing.T) {
 }
 
 func TestCreatedPRURLParsesGitHubPullURL(t *testing.T) {
-	require.Equal(t,
+	require.Equal(
+		t,
 		"https://github.com/owner/repo/pull/123",
 		createdPRURL("Creating pull request...\nhttps://github.com/owner/repo/pull/123\n"),
 	)

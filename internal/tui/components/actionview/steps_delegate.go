@@ -11,8 +11,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/log/v2"
 
-	api "github.com/dlvhdr/gh-dash/v4/internal/data/actionsapi"
-	apputils "github.com/dlvhdr/gh-dash/v4/internal/utils"
+	api "github.com/dlvhdr/gh-dehub/v4/internal/data/actionsapi"
+	apputils "github.com/dlvhdr/gh-dehub/v4/internal/utils"
 )
 
 type stepItem struct {

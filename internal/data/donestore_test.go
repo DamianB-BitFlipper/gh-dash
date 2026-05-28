@@ -9,7 +9,7 @@ import (
 )
 
 func TestDoneStore(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "gh-dash-donestore-test")
+	tempDir, err := os.MkdirTemp("", "dehub-donestore-test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}

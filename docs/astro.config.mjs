@@ -6,19 +6,19 @@ import astroBrokenLinksChecker from "astro-broken-links-checker";
 
 import node from "@astrojs/node";
 
-const ogUrl = new URL("og.png", "https://gh-dash.dev/").href;
-const ogImageAlt = "DASH Through Your GitHub";
+const ogUrl = new URL("og.png", "https://dehub.dev/").href;
+const ogImageAlt = "dehub Through Your GitHub";
 
 // https://astro.build/config
 export default defineConfig({
-  site: "https://gh-dash.dev",
+  site: "https://dehub.dev",
   integrations: [
     astroBrokenLinksChecker({
       logFilePath: "broken-links.log",
       checkExternalLinks: false,
     }),
     starlight({
-      title: "DASH",
+      title: "dehub",
       favicon: "/favicon.png",
       customCss: ["./src/styles/custom.css", "./src/fonts/font-face.css"],
       head: [
@@ -35,7 +35,7 @@ export default defineConfig({
           attrs: {
             name: "description",
             content:
-              "DASH - a rich terminal UI for GitHub that doesn't break your flow",
+              "dehub - a rich terminal UI for GitHub that doesn't break your flow",
           },
         },
       ],
@@ -46,7 +46,7 @@ export default defineConfig({
         {
           icon: "github",
           label: "GitHub",
-          href: "https://github.com/dlvhdr/gh-dash",
+          href: "https://github.com/dlvhdr/gh-dehub",
         },
       ],
       sidebar: [
@@ -89,12 +89,7 @@ export default defineConfig({
             },
           ],
         },
-        {
-          label: "Insiders 🌟",
-          items: ["insiders"],
-        },
         { slug: "contributing" },
-        { slug: "donating" },
       ],
     }),
   ],

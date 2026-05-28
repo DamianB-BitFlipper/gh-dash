@@ -16,12 +16,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/testutils"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/testutils"
 )
 
-// See https://www.gh-dash.dev/configuration/#_top
+// See https://github.com/dlvhdr/dehub
 //  1. get default config file or create it if it's missing
-//     1.1. try GH_DASH_CONFIG
+//     1.1. try DEHUB_CONFIG
 //     1.2. then check if we're in a git repo
 //     1.2.1. try both `.yml` and `.yaml`
 //     1.3. try to look under `XDG_CONFIG_HOME`
@@ -60,7 +60,7 @@ func TestParser(t *testing.T) {
 		defer func() {
 			os.Unsetenv("XDG_CONFIG_HOME")
 		}()
-		t.Setenv("GH_DASH_CONFIG", "")
+		t.Setenv("DEHUB_CONFIG", "")
 
 		parsed, err := ParseConfig(Location{})
 		testutils.AssertNoError(t, err)
@@ -84,7 +84,7 @@ func TestParser(t *testing.T) {
 		require.Equal(t, "#E2E1ED", parsed.Theme.Colors.Inline.Text.Primary.String())
 	})
 
-	t.Run("Should then try GH_DASH_CONFIG env var", func(t *testing.T) {
+	t.Run("Should then try DEHUB_CONFIG env var", func(t *testing.T) {
 		clearXDGEnv := setXDGConfigHomeEnvVar(t, "testdata")
 		defer clearXDGEnv()
 		clearEnv := setupConfigEnvVar(t)
@@ -119,7 +119,7 @@ func TestParser(t *testing.T) {
 		clearEnv := setXDGConfigHomeEnvVar(t, "testdata")
 		defer clearEnv()
 
-		// parse config in ./testdata/gh-dash/config.yml
+		// parse config in ./testdata/dehub/config.yml
 		actual, err := ParseConfig(Location{})
 		testutils.AssertNoError(t, err)
 
@@ -149,7 +149,7 @@ func TestParser(t *testing.T) {
 		clearEnv := setXDGConfigHomeEnvVar(t, "testdata")
 		defer clearEnv()
 
-		// merge with config in ./testdata/gh-dash/config.yml
+		// merge with config in ./testdata/dehub/config.yml
 		cwd := Testwd(t)
 		actual, err := ParseConfig(Location{
 			ConfigFlag: path.Join(cwd, "./testdata/other-test-config.yml"),
@@ -235,8 +235,8 @@ func TestValidateColor(t *testing.T) {
 func setupConfigEnvVar(t *testing.T) func() {
 	t.Helper()
 	cwd := Testwd(t)
-	os.Setenv("GH_DASH_CONFIG", path.Join(cwd, "testdata/other-test-config.yml"))
+	os.Setenv("DEHUB_CONFIG", path.Join(cwd, "testdata/other-test-config.yml"))
 	return func() {
-		os.Unsetenv("GH_DASH_CONFIG")
+		os.Unsetenv("DEHUB_CONFIG")
 	}
 }

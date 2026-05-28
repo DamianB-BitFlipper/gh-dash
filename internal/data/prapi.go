@@ -12,9 +12,9 @@ import (
 	graphql "github.com/cli/shurcooL-graphql"
 	"github.com/shurcooL/githubv4"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/checks"
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/theme"
+	"github.com/dlvhdr/gh-dehub/v4/internal/checks"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/theme"
 )
 
 type SuggestedReviewer struct {

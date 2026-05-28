@@ -6,7 +6,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
 )
 
 // Model defines a state for the carousel widget.
@@ -280,7 +280,8 @@ func (m *Model) UpdateSize() {
 	}
 
 	m.content = lipgloss.NewStyle().Height(m.height).Render(
-		lipgloss.JoinHorizontal(lipgloss.Center, loIndicator, itemsContent, roIndicator))
+		lipgloss.JoinHorizontal(lipgloss.Center, loIndicator, itemsContent, roIndicator),
+	)
 }
 
 // SelectedItem returns the selected item.

@@ -10,15 +10,15 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/diffviewer"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/diffviewer"
 )
 
 // DiffPR opens a diff view for a PR using the gh CLI.
 // The env parameter should be the result of Config.GetFullScreenDiffPagerEnv().
-func DiffPR(prNumber int, repoName string, prURL string, diffPager string, runInBackground bool, env []string) tea.Cmd {
+func DiffPR(prNumber int, repoName string, prTitle string, prURL string, diffPager string, runInBackground bool, env []string) tea.Cmd {
 	if runInBackground || diffviewer.IsBuiltInPager(diffPager) {
-		return openDiffInBackground(prNumber, repoName, prURL, diffPager)
+		return openDiffInBackground(prNumber, repoName, prTitle, prURL, diffPager)
 	}
 
 	c := exec.Command(
@@ -39,7 +39,7 @@ func DiffPR(prNumber int, repoName string, prURL string, diffPager string, runIn
 	})
 }
 
-func openDiffInBackground(prNumber int, repoName string, prURL string, diffPager string) tea.Cmd {
+func openDiffInBackground(prNumber int, repoName string, prTitle string, prURL string, diffPager string) tea.Cmd {
 	return func() tea.Msg {
 		if strings.TrimSpace(diffPager) == "" {
 			diffPager = "less"
@@ -51,7 +51,7 @@ func openDiffInBackground(prNumber int, repoName string, prURL string, diffPager
 		}
 
 		if diffviewer.IsBuiltInPager(diffPager) {
-			if err := diffviewer.Open(context.Background(), diffviewer.Options{Diff: diff, SourceURL: prURL}); err != nil {
+			if err := diffviewer.Open(context.Background(), diffviewer.Options{Diff: diff, SourceURL: prURL, Title: formatPRTabTitle(prNumber, prTitle)}); err != nil {
 				return constants.ErrMsg{Err: err}
 			}
 			return nil
@@ -63,10 +63,11 @@ func openDiffInBackground(prNumber int, repoName string, prURL string, diffPager
 		}
 		pagerCmd := exec.Command(shell, "-c", diffPager)
 		pagerCmd.Stdin = bytes.NewReader(diff)
-		pagerCmd.Env = append(os.Environ(),
-			fmt.Sprintf("GH_DASH_PR_NUMBER=%d", prNumber),
-			fmt.Sprintf("GH_DASH_PR_REPO=%s", repoName),
-			fmt.Sprintf("GH_DASH_PR_URL=%s", prURL),
+		pagerCmd.Env = append(
+			os.Environ(),
+			fmt.Sprintf("DEHUB_PR_NUMBER=%d", prNumber),
+			fmt.Sprintf("DEHUB_PR_REPO=%s", repoName),
+			fmt.Sprintf("DEHUB_PR_URL=%s", prURL),
 		)
 
 		if err := pagerCmd.Run(); err != nil {
@@ -75,6 +76,15 @@ func openDiffInBackground(prNumber int, repoName string, prURL string, diffPager
 
 		return nil
 	}
+}
+
+func formatPRTabTitle(prNumber int, prTitle string) string {
+	prTitle = strings.TrimSpace(prTitle)
+	if prTitle == "" {
+		return fmt.Sprintf("#%d", prNumber)
+	}
+
+	return fmt.Sprintf("#%d %s", prNumber, prTitle)
 }
 
 func fetchPRDiff(prNumber int, repoName string) ([]byte, error) {

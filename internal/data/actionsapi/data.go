@@ -13,7 +13,7 @@ import (
 	gh "github.com/cli/go-gh/v2/pkg/api"
 	"github.com/shurcooL/githubv4"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/checks"
+	"github.com/dlvhdr/gh-dehub/v4/internal/checks"
 )
 
 const (

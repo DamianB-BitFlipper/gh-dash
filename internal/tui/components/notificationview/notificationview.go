@@ -7,11 +7,11 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/common"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/notificationrow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prrow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/common"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/notificationrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
 )
 
 type Model struct {
@@ -191,14 +191,16 @@ func (m Model) View() string {
 
 	// Type with icon
 	typeIcon := getTypeIcon(notification.Subject.Type)
-	typeRow := lipgloss.JoinHorizontal(lipgloss.Top,
+	typeRow := lipgloss.JoinHorizontal(
+		lipgloss.Top,
 		labelStyle.Render("Type"),
 		valueStyle.Render(fmt.Sprintf("%s %s", typeIcon, notification.Subject.Type)),
 	)
 	s.WriteString(sectionStyle.Render(typeRow))
 	s.WriteString("\n")
 
-	repoRow := lipgloss.JoinHorizontal(lipgloss.Top,
+	repoRow := lipgloss.JoinHorizontal(
+		lipgloss.Top,
 		labelStyle.Render("Repository"),
 		valueStyle.Render(notification.Repository.FullName),
 	)
@@ -209,14 +211,16 @@ func (m Model) View() string {
 	if notification.Repository.Private {
 		visibility = "Private"
 	}
-	visibilityRow := lipgloss.JoinHorizontal(lipgloss.Top,
+	visibilityRow := lipgloss.JoinHorizontal(
+		lipgloss.Top,
 		labelStyle.Render("Visibility"),
 		valueStyle.Render(visibility),
 	)
 	s.WriteString(sectionStyle.Render(visibilityRow))
 	s.WriteString("\n")
 
-	reasonRow := lipgloss.JoinHorizontal(lipgloss.Top,
+	reasonRow := lipgloss.JoinHorizontal(
+		lipgloss.Top,
 		labelStyle.Render("Reason"),
 		valueStyle.Render(formatReason(notification.Reason)),
 	)
@@ -227,7 +231,8 @@ func (m Model) View() string {
 	if notification.Unread {
 		status = "Unread"
 	}
-	statusRow := lipgloss.JoinHorizontal(lipgloss.Top,
+	statusRow := lipgloss.JoinHorizontal(
+		lipgloss.Top,
 		labelStyle.Render("Status"),
 		valueStyle.Render(status),
 	)
@@ -235,7 +240,8 @@ func (m Model) View() string {
 	s.WriteString("\n")
 
 	// Updated at
-	updatedRow := lipgloss.JoinHorizontal(lipgloss.Top,
+	updatedRow := lipgloss.JoinHorizontal(
+		lipgloss.Top,
 		labelStyle.Render("Updated"),
 		valueStyle.Render(notification.UpdatedAt.Local().Format("Jan 2, 2006 3:04 PM")),
 	)
@@ -247,7 +253,8 @@ func (m Model) View() string {
 	if notification.LastReadAt != nil {
 		lastReadValue = notification.LastReadAt.Local().Format("Jan 2, 2006 3:04 PM")
 	}
-	lastReadRow := lipgloss.JoinHorizontal(lipgloss.Top,
+	lastReadRow := lipgloss.JoinHorizontal(
+		lipgloss.Top,
 		labelStyle.Render("Last Read"),
 		valueStyle.Render(lastReadValue),
 	)
@@ -258,14 +265,16 @@ func (m Model) View() string {
 	if notification.Subject.LatestCommentUrl != "" {
 		hasComment = "Yes"
 	}
-	commentRow := lipgloss.JoinHorizontal(lipgloss.Top,
+	commentRow := lipgloss.JoinHorizontal(
+		lipgloss.Top,
 		labelStyle.Render("Has Comment"),
 		valueStyle.Render(hasComment),
 	)
 	s.WriteString(sectionStyle.Render(commentRow))
 	s.WriteString("\n")
 
-	idRow := lipgloss.JoinHorizontal(lipgloss.Top,
+	idRow := lipgloss.JoinHorizontal(
+		lipgloss.Top,
 		labelStyle.Render("Notification ID"),
 		faintValueStyle.Render(notification.Id),
 	)
@@ -273,7 +282,8 @@ func (m Model) View() string {
 	s.WriteString("\n")
 
 	if notification.Subject.Url != "" {
-		urlRow := lipgloss.JoinHorizontal(lipgloss.Top,
+		urlRow := lipgloss.JoinHorizontal(
+			lipgloss.Top,
 			labelStyle.Render("API URL"),
 			faintValueStyle.Render(notification.Subject.Url),
 		)

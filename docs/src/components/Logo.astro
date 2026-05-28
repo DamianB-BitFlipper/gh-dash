@@ -3,8 +3,7 @@ const { className } = Astro.props;
 ---
 
 <style>
-  [aria-label="DASH ASCII Logo"] {
-    transform: skew(-20deg);
+  [aria-label="dehub logo"] {
     width: fit-content;
     background-image: var(--hdr-gradient);
     background-size: 100%;
@@ -18,9 +17,8 @@ const { className } = Astro.props;
 </style>
 
 <div
-  aria-label="DASH ASCII Logo"
+  aria-label="dehub logo"
   class={`leading-[1.09] text-blue-300 not-dark:text-blue-500 ${className}`}
 >
-  ▜▔▚▐▔▌▚▔▐ ▌<br />
-  ▟▁▞▐▔▌▁▚▐▔▌
+  dehub
 </div>

@@ -21,7 +21,7 @@ import (
 	"github.com/knadh/koanf/v2"
 	yamlmarshaller "gopkg.in/yaml.v3"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/utils"
+	"github.com/dlvhdr/gh-dehub/v4/internal/utils"
 )
 
 var hexColorRegex = regexp.MustCompile(`^#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$`)
@@ -31,9 +31,9 @@ var conf = koanf.Conf{
 	StrictMerge: true,
 }
 
-const DashDir = "gh-dash"
+const DashDir = "dehub"
 
-const RepoConfigFileName = ".gh-dash.yml"
+const RepoConfigFileName = ".dehub.yml"
 
 const ConfigYmlFileName = "config.yml"
 
@@ -566,7 +566,7 @@ Create one under: %s
 Example of a config.yml file:
 %s
 
-For more info, go to https://github.com/dlvhdr/gh-dash
+For more info, go to https://github.com/dlvhdr/dehub
 press q to exit.
 
 Original error: %v`,
@@ -650,8 +650,8 @@ func (parser ConfigParser) getProvidedConfigPath(location Location) string {
 	// First try the provided --config flag
 	if location.ConfigFlag != "" {
 		userProvidedCfgPath = location.ConfigFlag
-	} else if cfg := os.Getenv("GH_DASH_CONFIG"); cfg != "" {
-		// then try the GH_DASH_CONFIG env var
+	} else if cfg := os.Getenv("DEHUB_CONFIG"); cfg != "" {
+		// then try the DEHUB_CONFIG env var
 		userProvidedCfgPath = cfg
 	} else if location.RepoPath != "" {
 		// Then try to see if we're currently in a git repo

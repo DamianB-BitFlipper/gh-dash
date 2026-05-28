@@ -5,7 +5,7 @@ export function GET() {
       $schema: "https://json-schema.org/draft/2020-12/schema",
       $id: "theme.schema.json",
       title: "Theme Options",
-      description: "Theme settings for gh-dash",
+      description: "Theme settings for dehub",
       type: "object",
       required: [],
       properties: {

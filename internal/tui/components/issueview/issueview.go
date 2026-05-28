@@ -10,19 +10,19 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/common"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/cmpcontroller"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/fuzzyselect"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/inputbox"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/issuerow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/issuessection"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/tasks"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/keys"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/markdown"
-	"github.com/dlvhdr/gh-dash/v4/internal/utils"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/common"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/cmpcontroller"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/fuzzyselect"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/inputbox"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/issuerow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/issuessection"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/tasks"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/keys"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/markdown"
+	"github.com/dlvhdr/gh-dehub/v4/internal/utils"
 )
 
 var (
@@ -197,12 +197,15 @@ func (m *Model) renderAuthor() string {
 		authorAssociation = "unknown role"
 	}
 	time := lipgloss.NewStyle().Render(utils.TimeElapsed(m.issue.Data.CreatedAt))
-	return lipgloss.JoinHorizontal(lipgloss.Top,
+	return lipgloss.JoinHorizontal(
+		lipgloss.Top,
 		" by ",
 		lipgloss.NewStyle().Foreground(m.ctx.Theme.PrimaryText).Render(
-			lipgloss.NewStyle().Bold(true).Render("@"+m.issue.Data.Author.Login)),
+			lipgloss.NewStyle().Bold(true).Render("@"+m.issue.Data.Author.Login),
+		),
 		lipgloss.NewStyle().Foreground(m.ctx.Theme.FaintText).Render(
-			lipgloss.JoinHorizontal(lipgloss.Top, " ⋅ ", time, " ago", " ⋅ ")),
+			lipgloss.JoinHorizontal(lipgloss.Top, " ⋅ ", time, " ago", " ⋅ "),
+		),
 		lipgloss.NewStyle().Foreground(m.ctx.Theme.FaintText).Render(
 			lipgloss.JoinHorizontal(lipgloss.Top, data.GetAuthorRoleIcon(m.issue.Data.AuthorAssociation,
 				m.ctx.Theme),

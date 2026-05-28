@@ -20,24 +20,24 @@ import (
 
 	zone "github.com/lrstanley/bubblezone/v2"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/common"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/footer"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/issueview"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/notificationrow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/notificationssection"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/notificationview"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prrow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prssection"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prview"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/section"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/sidebar"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/tabs"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/keys"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/markdown"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/theme"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/common"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/footer"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/issueview"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/notificationrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/notificationssection"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/notificationview"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prssection"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prview"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/section"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/sidebar"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/tabs"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/keys"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/markdown"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/theme"
 )
 
 // func TestFullOutput(t *testing.T) {
@@ -76,7 +76,7 @@ import (
 
 // func setupTest(t *testing.T) {
 // 	if _, debug := os.LookupEnv("DEBUG"); debug {
-// 		f, _ := os.CreateTemp("", "gh-dash-debug.log")
+// 		f, _ := os.CreateTemp("", "dehub-debug.log")
 // 		fmt.Printf("[DEBU] writing debug logs to %s\n", f.Name())
 // 		defer f.Close()
 // 		log.SetOutput(f)
@@ -2125,7 +2125,7 @@ func TestCommandTemplateMissingVariable(t *testing.T) {
 
 func TestRepoPathFallbackToCtxRepoPath(t *testing.T) {
 	// When repoPaths config is empty, RepoPath should fall back to ctxRepoPath
-	// (the repo gh-dash was started from).
+	// (the repo dehub was started from).
 	contextData := map[string]any{
 		"RepoName":    "owner/repo",
 		"IssueNumber": 42,
@@ -2263,7 +2263,7 @@ func TestSyncMainContentWidth(t *testing.T) {
 }
 
 func TestSyncSidebar_NoOpWhenSidebarClosed(t *testing.T) {
-	// Regression test for https://github.com/dlvhdr/gh-dash/issues/798
+	// Regression test for https://github.com/dlvhdr/gh-dehub/issues/798
 	// When preview.open is false, DynamicPreviewWidth is 0, so
 	// GetSidebarContentWidth() returns 0. If syncSidebar() proceeds to
 	// render the PR view with that zero width, layout breaks.
@@ -2573,8 +2573,8 @@ func TestSyncMainContentDimensions_BottomMode(t *testing.T) {
 			screenHeight:          40,
 			previewHeight:         0.4,
 			sidebarOpen:           true,
-			expectedPreviewHeight: 13,
-			expectedMainHeight:    21,
+			expectedPreviewHeight: 14,
+			expectedMainHeight:    22,
 			expectedMainWidth:     100,
 		},
 		{
@@ -2584,7 +2584,7 @@ func TestSyncMainContentDimensions_BottomMode(t *testing.T) {
 			previewHeight:         0.4,
 			sidebarOpen:           false,
 			expectedPreviewHeight: 0,
-			expectedMainHeight:    35,
+			expectedMainHeight:    37,
 			expectedMainWidth:     100,
 		},
 		{
@@ -2594,7 +2594,7 @@ func TestSyncMainContentDimensions_BottomMode(t *testing.T) {
 			previewHeight:         10,
 			sidebarOpen:           true,
 			expectedPreviewHeight: 10,
-			expectedMainHeight:    24,
+			expectedMainHeight:    26,
 			expectedMainWidth:     100,
 		},
 	}

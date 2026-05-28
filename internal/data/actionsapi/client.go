@@ -6,7 +6,7 @@ import (
 
 	gh "github.com/cli/go-gh/v2/pkg/api"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
 )
 
 func NewClient() (*gh.GraphQLClient, error) {

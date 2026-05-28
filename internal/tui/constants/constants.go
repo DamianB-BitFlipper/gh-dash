@@ -52,7 +52,6 @@ const (
 	CodeReviewIcon     = ""
 	CommentIcon        = ""
 	CommentsIcon       = ""
-	DonateIcon         = "󱃱"
 	DraftIcon          = ""
 	CommitIcon         = ""
 	VerticalCommitIcon = "󰜘"
@@ -103,6 +102,7 @@ const (
 	ApprovalPrompt      = "Approve with comment" + Ellipsis
 	LabelPrompt         = "Add/remove labels (comma-separated)" + Ellipsis
 
-	Logo = `▜▔▚▐▔▌▚▔▐ ▌
-▟▁▞▐▔▌▁▚▐▔▌`
+	Logo = `▛▀▖▛▀▘▌ ▌▌ ▌▛▀▖
+▌ ▌▛▀ ▛▀▌▌ ▌▛▀▖
+▙▄▘▙▄▖▌ ▌▙▄▘▙▄▘`
 )

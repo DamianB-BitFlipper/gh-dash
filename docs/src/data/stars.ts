@@ -1,7 +1,7 @@
 const GH_TOKEN = import.meta.env.GH_TOKEN;
 
 export const getStars = async () => {
-  const response = await fetch("https://api.github.com/repos/dlvhdr/gh-dash", {
+  const response = await fetch("https://api.github.com/repos/dlvhdr/gh-dehub", {
     method: "GET",
     headers: {
       Authorization: `bearer ${GH_TOKEN}`,

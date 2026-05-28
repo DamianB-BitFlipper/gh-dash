@@ -11,18 +11,18 @@ import (
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/stretchr/testify/require"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prompt"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/search"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/table"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/theme"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prompt"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/search"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/table"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/theme"
 )
 
 func currentRepoFilter(t *testing.T) string {
 	t.Helper()
-	t.Setenv("GH_REPO", "https://github.com/dlvhdr/gh-dash")
+	t.Setenv("GH_REPO", "https://github.com/dlvhdr/gh-dehub")
 	repo, err := repository.Current()
 	if err != nil {
 		t.Fatal("failed to resolve current repository:", err)

@@ -1,24 +1,24 @@
 prSections:
   - title: Mine
     filters:
-      is:open author:@me repo:dlvhdr/gh-dash updated:>={{ nowModify "-3w" }}
+      is:open author:@me repo:dlvhdr/dehub updated:>={{ nowModify "-3w" }}
       sort:updated-desc
     type: null
   - title: Review
     filters:
-      repo:dlvhdr/gh-dash -author:@me is:open updated:>={{ nowModify "-2.5w"
+      repo:dlvhdr/dehub -author:@me is:open updated:>={{ nowModify "-2.5w"
       }}
     type: null
   - title: All
-    filters: repo:dlvhdr/gh-dash
+    filters: repo:dlvhdr/dehub
     type: null
 issuesSections:
   - title: Open
-    filters: author:@me repo:dlvhdr/gh-dash is:open -author:@me sort:reactions
+    filters: author:@me repo:dlvhdr/dehub is:open -author:@me sort:reactions
   - title: Creator
-    filters: author:@me repo:dlvhdr/gh-dash is:open
+    filters: author:@me repo:dlvhdr/dehub is:open
   - title: All
-    filters: repo:dlvhdr/gh-dash sort:reactions
+    filters: repo:dlvhdr/dehub sort:reactions
 notificationsSections:
   - title: All
     filters: ""

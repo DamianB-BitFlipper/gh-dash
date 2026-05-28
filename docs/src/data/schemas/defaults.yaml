@@ -47,8 +47,8 @@ properties:
 
         They determine which columns are displayed and how.
 
-        [sref:`prSections`]: gh-dash.prSections
-        [sref:`issueSections`]: gh-dash.issueSections
+        [sref:`prSections`]: gh-dehub.prSections
+        [sref:`issueSections`]: gh-dehub.issueSections
     type: object
     properties:
       prs:

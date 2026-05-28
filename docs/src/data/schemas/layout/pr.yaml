@@ -12,7 +12,7 @@ schematize:
 
     Note that if the length of a column's text exceeds the defined column [sref:`width`], the view
     truncates the column's text to two characters shorter than the column's width. For example, if
-    the width is `6`, `gh-dash` displays as ![styled:`gh-d`]().
+    the width is `6`, `gh-dehub` displays as ![styled:`gh-d`]().
 
     Column headings have their color defined by the [sref:`theme.colors.text.primary`] setting.
 
@@ -124,8 +124,8 @@ properties:
       format: yaml
       details: |
         This column displays the name of the repository the PR is filed in. The entry shows the
-        name of the repository without the owner, like ![styled:`gh-dash`]() for the
-        `https://github.com/dlvhdr/gh-dash` repository.
+        name of the repository without the owner, like ![styled:`gh-dehub`]() for the
+        `https://github.com/dlvhdr/gh-dehub` repository.
 
         The heading for this column is ![styled:``]().
 

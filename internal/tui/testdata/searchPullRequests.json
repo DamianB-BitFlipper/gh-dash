@@ -12,7 +12,7 @@
           "authorAssociation": "CONTRIBUTOR",
           "updatedAt": "2025-09-18T17:42:42Z",
           "createdAt": "2025-09-18T17:38:19Z",
-          "url": "https://github.com/dlvhdr/gh-dash/pull/635",
+          "url": "https://github.com/dlvhdr/gh-dehub/pull/635",
           "state": "MERGED",
           "mergeable": "UNKNOWN",
           "reviewDecision": "APPROVED",
@@ -21,14 +21,14 @@
           "headRefName": "style",
           "baseRefName": "main",
           "headRepository": {
-            "name": "gh-dash"
+            "name": "dehub"
           },
           "headRef": {
             "name": "style"
           },
           "repository": {
-            "name": "gh-dash",
-            "nameWithOwner": "dlvhdr/gh-dash",
+            "name": "dehub",
+            "nameWithOwner": "dlvhdr/gh-dehub",
             "isArchived": false,
             "branchProtectionRules": {
               "nodes": [
@@ -107,7 +107,7 @@
           "authorAssociation": "OWNER",
           "updatedAt": "2025-09-17T19:30:20Z",
           "createdAt": "2025-09-17T19:28:34Z",
-          "url": "https://github.com/dlvhdr/gh-dash/pull/632",
+          "url": "https://github.com/dlvhdr/gh-dehub/pull/632",
           "state": "MERGED",
           "mergeable": "UNKNOWN",
           "reviewDecision": "REVIEW_REQUIRED",
@@ -116,12 +116,12 @@
           "headRefName": "dlvhdr/cleanup-demo-tape",
           "baseRefName": "main",
           "headRepository": {
-            "name": "gh-dash"
+            "name": "dehub"
           },
           "headRef": null,
           "repository": {
-            "name": "gh-dash",
-            "nameWithOwner": "dlvhdr/gh-dash",
+            "name": "dehub",
+            "nameWithOwner": "dlvhdr/gh-dehub",
             "isArchived": false,
             "branchProtectionRules": {
               "nodes": [
@@ -191,7 +191,7 @@
           "authorAssociation": "OWNER",
           "updatedAt": "2025-09-17T19:27:25Z",
           "createdAt": "2025-09-17T19:26:12Z",
-          "url": "https://github.com/dlvhdr/gh-dash/pull/631",
+          "url": "https://github.com/dlvhdr/gh-dehub/pull/631",
           "state": "MERGED",
           "mergeable": "UNKNOWN",
           "reviewDecision": "REVIEW_REQUIRED",
@@ -200,12 +200,12 @@
           "headRefName": "dlvhdr/refactor-utils-to-pkg",
           "baseRefName": "main",
           "headRepository": {
-            "name": "gh-dash"
+            "name": "dehub"
           },
           "headRef": null,
           "repository": {
-            "name": "gh-dash",
-            "nameWithOwner": "dlvhdr/gh-dash",
+            "name": "dehub",
+            "nameWithOwner": "dlvhdr/gh-dehub",
             "isArchived": false,
             "branchProtectionRules": {
               "nodes": [
@@ -299,7 +299,7 @@
           "authorAssociation": "OWNER",
           "updatedAt": "2025-09-17T19:24:42Z",
           "createdAt": "2025-09-17T19:18:16Z",
-          "url": "https://github.com/dlvhdr/gh-dash/pull/630",
+          "url": "https://github.com/dlvhdr/gh-dehub/pull/630",
           "state": "MERGED",
           "mergeable": "UNKNOWN",
           "reviewDecision": "REVIEW_REQUIRED",
@@ -308,12 +308,12 @@
           "headRefName": "dlvhdr/refactor-tui",
           "baseRefName": "main",
           "headRepository": {
-            "name": "gh-dash"
+            "name": "dehub"
           },
           "headRef": null,
           "repository": {
-            "name": "gh-dash",
-            "nameWithOwner": "dlvhdr/gh-dash",
+            "name": "dehub",
+            "nameWithOwner": "dlvhdr/gh-dehub",
             "isArchived": false,
             "branchProtectionRules": {
               "nodes": [
@@ -407,7 +407,7 @@
           "authorAssociation": "OWNER",
           "updatedAt": "2025-09-17T19:12:44Z",
           "createdAt": "2025-09-17T19:11:02Z",
-          "url": "https://github.com/dlvhdr/gh-dash/pull/629",
+          "url": "https://github.com/dlvhdr/gh-dehub/pull/629",
           "state": "MERGED",
           "mergeable": "UNKNOWN",
           "reviewDecision": "REVIEW_REQUIRED",
@@ -416,12 +416,12 @@
           "headRefName": "dlvhdr/move-data-internal",
           "baseRefName": "main",
           "headRepository": {
-            "name": "gh-dash"
+            "name": "dehub"
           },
           "headRef": null,
           "repository": {
-            "name": "gh-dash",
-            "nameWithOwner": "dlvhdr/gh-dash",
+            "name": "dehub",
+            "nameWithOwner": "dlvhdr/gh-dehub",
             "isArchived": false,
             "branchProtectionRules": {
               "nodes": [

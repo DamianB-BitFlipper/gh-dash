@@ -11,7 +11,7 @@ schematize:
 
     | Argument      | Description                                                                     |
     | ------------- | ------------------------------------------------------------------------------- |
-    | `RepoName`    | The full name of the repo (e.g. `dlvhdr/gh-dash`)                               |
+    | `RepoName`    | The full name of the repo (e.g. `dlvhdr/gh-dehub`)                               |
     | `RepoPath`    | The path to the Repo, using the `config.yml` `repoPaths` key to get the mapping |
     | `PrNumber`    | The PR number                                                                   |
     | `HeadRefName` | The PR's remote branch name                                                     |

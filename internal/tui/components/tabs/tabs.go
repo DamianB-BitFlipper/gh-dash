@@ -10,15 +10,14 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/common"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/actionssection"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/carousel"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/section"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
-	"github.com/dlvhdr/gh-dash/v4/internal/utils"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/common"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/actionssection"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/carousel"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/section"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/utils"
 )
 
 type SectionTab struct {
@@ -31,7 +30,6 @@ type Model struct {
 	sectionTabs      []SectionTab
 	carousel         carousel.Model
 	ctx              *context.ProgramContext
-	latestVersion    string
 	hasSearchSection bool
 }
 
@@ -59,14 +57,12 @@ func (m *Model) SetHasSearchSection(v bool) {
 }
 
 func (m Model) Init() tea.Cmd {
-	return m.fetchHasNewVersion()
+	return nil
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 0)
 	switch msg := msg.(type) {
-	case latestVersionMsg:
-		m.latestVersion = msg.version
 	case spinner.TickMsg:
 		for i, tab := range m.sectionTabs {
 			if tab.section.GetIsLoading() {
@@ -83,15 +79,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	logo := m.viewLogo()
-	tabsWidth := max(0, m.ctx.ScreenWidth-lipgloss.Width(logo))
+	tabsWidth := m.ctx.ScreenWidth
 	c := m.viewSectionTabs(tabsWidth)
 	content := m.ctx.Styles.Tabs.TabsRow.
 		Width(m.ctx.ScreenWidth).
 		Height(common.HeaderHeight).
 		BorderBottom(false).
-		Render(lipgloss.JoinHorizontal(lipgloss.Bottom,
-			lipgloss.NewStyle().Width(tabsWidth).Render(c), logo))
+		Render(lipgloss.NewStyle().Width(tabsWidth).Render(c))
 
 	return lipgloss.JoinVertical(lipgloss.Left, content, m.focusDivider())
 }
@@ -275,21 +269,6 @@ func actionsDividerWidths(total int) (workflows, runs, details int) {
 	return workflows, runs, details
 }
 
-type latestVersionMsg struct {
-	version string
-	err     error
-}
-
-func (m *Model) fetchHasNewVersion() tea.Cmd {
-	return func() tea.Msg {
-		r, err := data.FetchLatestVersion()
-		return latestVersionMsg{
-			version: r.Repository.LatestRelease.TagName,
-			err:     err,
-		}
-	}
-}
-
 func (m *Model) CurrSectionId() int {
 	return m.carousel.Cursor()
 }
@@ -307,7 +286,7 @@ func (m *Model) UpdateProgramContext(ctx *context.ProgramContext) {
 		Separator:         ctx.Styles.Tabs.TabSeparator,
 	})
 
-	m.carousel.SetWidth(ctx.ScreenWidth - lipgloss.Width(m.viewLogo()))
+	m.carousel.SetWidth(ctx.ScreenWidth)
 }
 
 func (m *Model) SetSections(sections []section.Section) {
@@ -347,31 +326,6 @@ func (m *Model) UpdateTabTitles() {
 	oldCursor := m.carousel.Cursor()
 	m.carousel.SetItems(titles)
 	m.carousel.SetCursor(oldCursor)
-}
-
-func (m *Model) viewLogo() string {
-	version := lipgloss.NewStyle().Foreground(m.ctx.Theme.SecondaryText).Render(m.ctx.Version)
-	if m.latestVersion != "" && m.ctx.Version != "dev" && m.ctx.Version != m.latestVersion {
-		version = lipgloss.JoinVertical(
-			lipgloss.Left,
-			version,
-			lipgloss.NewStyle().
-				Foreground(m.ctx.Styles.Colors.SuccessText).
-				Render(" Update available!"),
-		)
-	} else {
-		version = lipgloss.PlaceVertical(2, lipgloss.Bottom, version)
-	}
-
-	return lipgloss.NewStyle().
-		Padding(0, 1, 0, 2).
-		Height(2).
-		Render(lipgloss.JoinHorizontal(
-			lipgloss.Bottom,
-			lipgloss.NewStyle().Foreground(context.LogoColor).Render(constants.Logo),
-			" ",
-			version,
-		))
 }
 
 func (m *Model) SetAllLoading() []tea.Cmd {

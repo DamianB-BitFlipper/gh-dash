@@ -3,7 +3,7 @@ package notificationssection
 import (
 	"testing"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
 )
 
 func TestParseNotificationFilters(t *testing.T) {

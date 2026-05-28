@@ -10,7 +10,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/log/v2"
 
-	data "github.com/dlvhdr/gh-dash/v4/internal/data/actions"
+	data "github.com/dlvhdr/gh-dehub/v4/internal/data/actions"
 )
 
 type runItem struct {

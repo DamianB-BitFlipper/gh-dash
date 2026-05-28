@@ -16,34 +16,33 @@ import (
 	"charm.land/lipgloss/v2"
 	log "charm.land/log/v2"
 	"github.com/atotto/clipboard"
-	"github.com/cli/go-gh/v2/pkg/browser"
 	zone "github.com/lrstanley/bubblezone/v2"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/data"
-	"github.com/dlvhdr/gh-dash/v4/internal/git"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/common"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/actionssection"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/actionview"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/footer"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/fuzzyselect"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/issuessection"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/issueview"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/notificationrow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/notificationssection"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/notificationview"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prrow"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prssection"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prview"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/section"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/sidebar"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/tabs"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/tasks"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/constants"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/keys"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/markdown"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/theme"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/git"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/common"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/actionssection"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/actionview"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/footer"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/fuzzyselect"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/issuessection"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/issueview"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/notificationrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/notificationssection"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/notificationview"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prssection"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prview"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/section"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/sidebar"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/tabs"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/tasks"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/keys"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/markdown"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/theme"
 )
 
 type activePane int
@@ -900,11 +899,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						case prview.PRActionComment:
 							return m, m.openSidebarForInputNoScroll(m.prView.SetIsCommenting)
 
-						case prview.PRActionDiff:
-							if pr := m.notificationView.GetSubjectPR(); pr != nil {
-								cmd = common.DiffPR(pr.GetNumber(), pr.GetRepoNameWithOwner(),
-									pr.GetUrl(),
-									m.ctx.Config.Pager.Diff,
+					case prview.PRActionDiff:
+						if pr := m.notificationView.GetSubjectPR(); pr != nil {
+							cmd = common.DiffPR(pr.GetNumber(), pr.GetRepoNameWithOwner(),
+								pr.GetTitle(),
+								pr.GetUrl(),
+								m.ctx.Config.Pager.Diff,
 									m.ctx.Config.RunDiffPagerInBackground(),
 									m.ctx.Config.GetFullScreenDiffPagerEnv())
 							}
@@ -1405,19 +1405,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.copySelection.begin(pane, x, y)
 				return m, nil
 			}
-		}
-
-		if zone.Get("donate").InBounds(msg) {
-			log.Info("Donate clicked", "msg", msg)
-			openCmd := func() tea.Msg {
-				b := browser.New("", os.Stdout, os.Stdin)
-				err := b.Browse("https://github.com/sponsors/dlvhdr")
-				if err != nil {
-					return constants.ErrMsg{Err: err}
-				}
-				return nil
-			}
-			cmds = append(cmds, openCmd)
 		}
 
 	case tea.MouseMotionMsg:

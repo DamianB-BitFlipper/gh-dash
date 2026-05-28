@@ -7,7 +7,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	log "charm.land/log/v2"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
 )
 
 // NotificationSubjectType indicates what type of content is being viewed in the notifications view

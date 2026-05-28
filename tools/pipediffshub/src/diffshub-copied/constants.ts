@@ -35,7 +35,7 @@ export const CODE_VIEW_CUSTOM_CSS = `
   }
 }
 
-::highlight(gh-dash-diff-search) {
+::highlight(dehub-diff-search) {
   color: #111827;
   background-color: #facc15;
 }

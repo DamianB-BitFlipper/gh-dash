@@ -8,12 +8,14 @@ import (
 	bbHelp "charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 
-	"github.com/dlvhdr/gh-dash/v4/internal/config"
-	"github.com/dlvhdr/gh-dash/v4/internal/git"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/context"
-	"github.com/dlvhdr/gh-dash/v4/internal/tui/keys"
-	"github.com/dlvhdr/gh-dash/v4/internal/utils"
+	"github.com/dlvhdr/gh-dehub/v4/internal/config"
+	"github.com/dlvhdr/gh-dehub/v4/internal/git"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/keys"
+	"github.com/dlvhdr/gh-dehub/v4/internal/utils"
 )
 
 const viewSeparator = " │ "
@@ -87,11 +89,38 @@ func (m Model) View() string {
 
 	if m.ShowAll {
 		keymap := keys.CreateKeyMapForView(m.ctx.View)
+		logo := m.viewLogo()
 		fullHelp := m.help.View(closeHelpKeyMap{KeyMap: keymap})
-		return lipgloss.JoinVertical(lipgloss.Top, footer, fullHelp)
+		return lipgloss.JoinVertical(lipgloss.Top, footer, m.overlayLogo(fullHelp, logo))
 	}
 
 	return footer
+}
+
+func (m Model) overlayLogo(helpView, logo string) string {
+	logoWidth := lipgloss.Width(logo)
+	logoStart := max(0, m.ctx.ScreenWidth-logoWidth)
+	helpLines := strings.Split(helpView, "\n")
+	logoLines := strings.Split(logo, "\n")
+
+	for i, logoLine := range logoLines {
+		for len(helpLines) <= i {
+			helpLines = append(helpLines, "")
+		}
+
+		line := ansi.Truncate(helpLines[i], logoStart, "")
+		padding := strings.Repeat(" ", max(0, logoStart-lipgloss.Width(line)))
+		helpLines[i] = line + padding + logoLine
+	}
+
+	return strings.Join(helpLines, "\n")
+}
+
+func (m Model) viewLogo() string {
+	return lipgloss.NewStyle().
+		Foreground(context.LogoColor).
+		PaddingRight(1).
+		Render(constants.Logo)
 }
 
 func (m *Model) SetShowConfirmQuit(val bool) {
@@ -195,14 +224,16 @@ func (m *Model) renderViewSwitcher(ctx *context.ProgramContext) string {
 			Render(m.renderViewButton(config.PRsView)),
 		ctx.Styles.ViewSwitcher.ViewsSeparator.Render(viewSeparator),
 	}
-	parts = append(parts,
+	parts = append(
+		parts,
 		m.renderViewButton(config.ActionsView),
 		ctx.Styles.ViewSwitcher.ViewsSeparator.Render(viewSeparator),
 		m.renderViewButton(config.IssuesView),
 		ctx.Styles.ViewSwitcher.ViewsSeparator.Render(viewSeparator),
 		m.renderViewButton(config.NotificationsView),
 	)
-	parts = append(parts,
+	parts = append(
+		parts,
 		lipgloss.NewStyle().Background(ctx.Styles.Common.FooterStyle.GetBackground()).Foreground(
 			ctx.Styles.ViewSwitcher.ViewsSeparator.GetBackground(),
 		).Render(" "),

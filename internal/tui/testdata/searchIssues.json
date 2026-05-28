@@ -13,10 +13,10 @@
           "authorAssociation": "NONE",
           "updatedAt": "2025-10-04T16:30:08Z",
           "createdAt": "2022-06-21T01:35:25Z",
-          "url": "https://github.com/dlvhdr/gh-dash/issues/141",
+          "url": "https://github.com/dlvhdr/gh-dehub/issues/141",
           "repository": {
-            "name": "gh-dash",
-            "nameWithOwner": "dlvhdr/gh-dash",
+            "name": "dehub",
+            "nameWithOwner": "dlvhdr/gh-dehub",
             "isArchived": false,
             "branchProtectionRules": {
               "nodes": [
@@ -71,10 +71,10 @@
           "authorAssociation": "NONE",
           "updatedAt": "2025-10-04T16:30:56Z",
           "createdAt": "2024-10-03T08:33:05Z",
-          "url": "https://github.com/dlvhdr/gh-dash/issues/461",
+          "url": "https://github.com/dlvhdr/gh-dehub/issues/461",
           "repository": {
-            "name": "gh-dash",
-            "nameWithOwner": "dlvhdr/gh-dash",
+            "name": "dehub",
+            "nameWithOwner": "dlvhdr/gh-dehub",
             "isArchived": false,
             "branchProtectionRules": {
               "nodes": [
@@ -121,7 +121,7 @@
         {
           "number": 175,
           "title": "Add PR approval",
-          "body": "**Is your feature request related to a problem? Please describe.**\r\nSometimes when bumping Terraform module versions, I get a bunch of renovate PRs. I would like to quickly approve them from within dash.\r\n\r\n**Describe the solution you'd like**\r\nI would like to add \"Approve\" as a keybinding like \"Merge\" (https://github.com/dlvhdr/gh-dash/pull/168).\r\nProbably it popups with a message dialog to enter a comment.\r\n\r\n**Describe alternatives you've considered**\r\nCurrently I created my own keybinding.\r\n\r\n**Additional context**\r\nI would like to implement it in the context of #hacktoberfest which is just around the corner.\r\n",
+          "body": "**Is your feature request related to a problem? Please describe.**\r\nSometimes when bumping Terraform module versions, I get a bunch of renovate PRs. I would like to quickly approve them from within dehub.\r\n\r\n**Describe the solution you'd like**\r\nI would like to add \"Approve\" as a keybinding like \"Merge\" (https://github.com/dlvhdr/gh-dehub/pull/168).\r\nProbably it popups with a message dialog to enter a comment.\r\n\r\n**Describe alternatives you've considered**\r\nCurrently I created my own keybinding.\r\n\r\n**Additional context**\r\nI would like to implement it in the context of #hacktoberfest which is just around the corner.\r\n",
           "state": "CLOSED",
           "author": {
             "login": "jgrumboe"
@@ -129,10 +129,10 @@
           "authorAssociation": "NONE",
           "updatedAt": "2024-11-20T13:18:37Z",
           "createdAt": "2022-09-15T12:45:46Z",
-          "url": "https://github.com/dlvhdr/gh-dash/issues/175",
+          "url": "https://github.com/dlvhdr/gh-dehub/issues/175",
           "repository": {
-            "name": "gh-dash",
-            "nameWithOwner": "dlvhdr/gh-dash",
+            "name": "dehub",
+            "nameWithOwner": "dlvhdr/gh-dehub",
             "isArchived": false,
             "branchProtectionRules": {
               "nodes": [
@@ -238,14 +238,14 @@
                 "author": {
                   "login": "miniscruff"
                 },
-                "body": "For anyone curious, you can use gh-dash with [Gum](https://github.com/charmbracelet/gum) also from charm to create prompts with input.\r\n\r\nHere is how you can do a pr approval with a comment. Can adjust for request changes, text blocks over inputs etc.\r\n\r\n```yaml\r\nkeybindings:\r\n  prs:\r\n    - key: a\r\n      command: >\r\n        gh pr review --repo {{.RepoName}} --approve --body \"$(gum input --prompt='Approval Comment: ')\" {{.PrNumber}}\r\n\r\n```",
+                "body": "For anyone curious, you can use dehub with [Gum](https://github.com/charmbracelet/gum) also from charm to create prompts with input.\r\n\r\nHere is how you can do a pr approval with a comment. Can adjust for request changes, text blocks over inputs etc.\r\n\r\n```yaml\r\nkeybindings:\r\n  prs:\r\n    - key: a\r\n      command: >\r\n        gh pr review --repo {{.RepoName}} --approve --body \"$(gum input --prompt='Approval Comment: ')\" {{.PrNumber}}\r\n\r\n```",
                 "updatedAt": "2024-04-03T00:34:04Z"
               },
               {
                 "author": {
                   "login": "rpdelaney"
                 },
-                "body": "```\r\nkeybindings:\r\n  prs:\r\n    - key: a\r\n      command: >\r\n        gh pr review --repo {{.RepoName}} --approve\r\n```\r\nI did not grok that this was possible already in gh-dash. Thank you so much.",
+                "body": "```\r\nkeybindings:\r\n  prs:\r\n    - key: a\r\n      command: >\r\n        gh pr review --repo {{.RepoName}} --approve\r\n```\r\nI did not grok that this was possible already in dehub. Thank you so much.",
                 "updatedAt": "2024-04-03T13:54:47Z"
               },
               {
@@ -268,7 +268,7 @@
         {
           "number": 108,
           "title": "Some suggestions to the documents",
-          "body": "I just want to address some issues I met and hope it could help others. \r\n\r\n## The folder that stores the config\r\n\r\nAccording https://pkg.go.dev/os#UserConfigDir, the folder is different in each OS.  it is `~/Library/Application Support/gh-dash` on Mac. \r\n\r\nDon't waste your time struggling with the `~/.config/gh-dash` folder..\r\n\r\n## The icons on the UI\r\n\r\nYou may not see the icons correctly even though you already have installed and used a nerd font. \r\n\r\nThat is because some of the icons need to be rendered with the `bold` style. Make sure you have set the bold font correctly. \r\n\r\n\r\n\r\n",
+          "body": "I just want to address some issues I met and hope it could help others. \r\n\r\n## The folder that stores the config\r\n\r\nAccording https://pkg.go.dev/os#UserConfigDir, the folder is different in each OS.  it is `~/Library/Application Support/dehub` on Mac. \r\n\r\nDon't waste your time struggling with the `~/.config/dehub` folder..\r\n\r\n## The icons on the UI\r\n\r\nYou may not see the icons correctly even though you already have installed and used a nerd font. \r\n\r\nThat is because some of the icons need to be rendered with the `bold` style. Make sure you have set the bold font correctly. \r\n\r\n\r\n\r\n",
           "state": "CLOSED",
           "author": {
             "login": "wd"
@@ -276,10 +276,10 @@
           "authorAssociation": "NONE",
           "updatedAt": "2022-05-28T12:03:51Z",
           "createdAt": "2022-04-04T02:09:35Z",
-          "url": "https://github.com/dlvhdr/gh-dash/issues/108",
+          "url": "https://github.com/dlvhdr/gh-dehub/issues/108",
           "repository": {
-            "name": "gh-dash",
-            "nameWithOwner": "dlvhdr/gh-dash",
+            "name": "dehub",
+            "nameWithOwner": "dlvhdr/gh-dehub",
             "isArchived": false,
             "branchProtectionRules": {
               "nodes": [
@@ -325,10 +325,10 @@
           "authorAssociation": "NONE",
           "updatedAt": "2025-10-04T16:31:06Z",
           "createdAt": "2022-04-03T21:16:07Z",
-          "url": "https://github.com/dlvhdr/gh-dash/issues/107",
+          "url": "https://github.com/dlvhdr/gh-dehub/issues/107",
           "repository": {
-            "name": "gh-dash",
-            "nameWithOwner": "dlvhdr/gh-dash",
+            "name": "dehub",
+            "nameWithOwner": "dlvhdr/gh-dehub",
             "isArchived": false,
             "branchProtectionRules": {
               "nodes": [
@@ -350,7 +350,7 @@
                 "author": {
                   "login": "adilansari"
                 },
-                "body": "@dlvhdr would a change to `input.SetWidth(xx)` do the trick?\r\n\r\nhttps://github.com/dlvhdr/gh-dash/blob/58a38ca68788efdf1637ecaeeed2500318d8e8fb/ui/components/prview/prview.go#L34",
+                "body": "@dlvhdr would a change to `input.SetWidth(xx)` do the trick?\r\n\r\nhttps://github.com/dlvhdr/gh-dehub/blob/58a38ca68788efdf1637ecaeeed2500318d8e8fb/ui/components/prview/prview.go#L34",
                 "updatedAt": "2023-05-05T17:28:20Z"
               },
               {

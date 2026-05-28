@@ -48,7 +48,7 @@ export function ReviewUI({ domain, path }: ReviewUIProps) {
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [fileTreeOverlayOpen, setFileTreeOverlayOpen] = useState(false);
-  const [overflow, setOverflow] = useState<'wrap' | 'scroll'>('scroll');
+  const [overflow, setOverflow] = useState<'wrap' | 'scroll'>('wrap');
   const [showBackgrounds, setShowBackgrounds] = useState(true);
   const [diffIndicators, setDiffIndicators] = useState<DiffIndicators>('bars');
   const [lineNumbers, setLineNumbers] = useState(true);

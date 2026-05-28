@@ -10,17 +10,17 @@ In this guide you will get an overview of the contribution workflow from opening
 
 - The most important rule: you must understand your code. If you can't explain what your changes do and how they interact with the greater system without the aid of AI tools, do not contribute to this project.
 - The second most important rule: when you submit a PR you must be willing to address comments and maintain this code. Dot not submit drive-by PRs that solve your own issue without the willingness to iterate on it. Keep these in your own fork.
-- Using AI to write code is fine. You can gain understanding by interrogating an agent with access to the codebase until you grasp all edge cases and effects of your changes. What's not fine is submitting agent-generated slop without that understanding. Be sure to read the [AI Usage Policy](https://github.com/dlvhdr/gh-dash/blob/main/AI_POLICY.md).
+- Using AI to write code is fine. You can gain understanding by interrogating an agent with access to the codebase until you grasp all edge cases and effects of your changes. What's not fine is submitting agent-generated slop without that understanding. Be sure to read the [AI Usage Policy](https://github.com/dlvhdr/gh-dehub/blob/main/AI_POLICY.md).
 
 ## AI Usage
 
-The project has strict rules for AI usage. Please see the [AI Usage Policy](https://github.com/dlvhdr/gh-dash/blob/main/AI_POLICY.md). This is very important.
+The project has strict rules for AI usage. Please see the [AI Usage Policy](https://github.com/dlvhdr/gh-dehub/blob/main/AI_POLICY.md). This is very important.
 
 ## Quick Guide
 
 ### I Have an Idea for a Feature
 
-Like bug reports, first search through both issues and discussions and try to find if your feature has already been requested. Otherwise, open a discussion in the ["Feature Requests, Ideas"](https://github.com/dlvhdr/gh-dash/issues/new?template=feature_request.md) category.
+Like bug reports, first search through both issues and discussions and try to find if your feature has already been requested. Otherwise, open a discussion in the ["Feature Requests, Ideas"](https://github.com/dlvhdr/gh-dehub/issues/new?template=feature_request.md) category.
 
 ### I've Implemented a Feature
 
@@ -30,7 +30,7 @@ Like bug reports, first search through both issues and discussions and try to fi
 
 ### I Have a Question Which Is Neither a Bug Report nor a Feature Request
 
-Open a [Q&A discussion](https://github.com/dlvhdr/gh-dash/discussions/categories/q-a), or join our [Discord Server](https://discord.gg/SXNXp9NctV) and ask away in the #help forum channel.
+Open a [Q&A discussion](https://github.com/dlvhdr/gh-dehub/discussions/categories/q-a), or join our [Discord Server](https://discord.gg/SXNXp9NctV) and ask away in the #help forum channel.
 
 ## Working on the Code
 
@@ -43,7 +43,7 @@ Using Devbox will get your dev environment up and running easily and make sure w
 - Clone this repo
 
 ```sh
-git clone git@github.com:dlvhdr/gh-dash.git && cd gh-dash
+git clone git@github.com:dlvhdr/gh-dehub.git && cd gh-dehub
 ```
 
 - Install `devbox`
@@ -92,7 +92,7 @@ To navigate our codebase with confidence, familiarize yourself with:
 
 - Write to the log by using Charm's `log` package
 - Tail the log by running `task logs`
-- Run `dash` in debug mode with `task debug` in another terminal window / pane
+- Run `dehub` in debug mode with `task debug` in another terminal window / pane
 
 ```go
 import "charm.land/log/v2"

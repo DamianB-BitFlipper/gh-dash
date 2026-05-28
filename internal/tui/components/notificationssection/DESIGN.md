@@ -2,7 +2,7 @@
 
 ## Overview
 
-The notifications feature adds a new view to gh-dash that displays GitHub notifications, allowing users to triage their inbox directly from the terminal. The implementation follows the existing patterns established by the PR and Issue views.
+The notifications feature adds a new view to dehub that displays GitHub notifications, allowing users to triage their inbox directly from the terminal. The implementation follows the existing patterns established by the PR and Issue views.
 
 ## Architecture
 
@@ -163,7 +163,7 @@ type NotificationIDStore struct {
 }
 ```
 
-- Stored in `~/.local/state/gh-dash/bookmarks.json` as a JSON array of IDs
+- Stored in `~/.local/state/dehub/bookmarks.json` as a JSON array of IDs
 - Accessed via `data.GetBookmarkStore()` singleton
 - Bookmarked notifications appear in the default inbox view even when read
 - Bookmarked notifications are styled as read (faint text) but show a bookmark indicator
@@ -183,7 +183,7 @@ type DoneStore struct {
 
 When marking a notification as Done, the store records the notification’s current `updated_at` timestamp. When checking whether a notification is still Done, `IsDone(id, updatedAt)` compares the stored timestamp against the notification’s current `updated_at`: if the notification has been updated since it was Done (new comments, state changes, etc.), it resurfaces automatically. This prevents notifications with new activity from being permanently hidden.
 
-- Stored in `~/.local/state/gh-dash/done.json` as a JSON object mapping IDs to RFC 3339 timestamps: `{"id": "2024-01-15T10:30:00Z", ...}`
+- Stored in `~/.local/state/dehub/done.json` as a JSON object mapping IDs to RFC 3339 timestamps: `{"id": "2024-01-15T10:30:00Z", ...}`
 - Accessed via `data.GetDoneStore()` singleton
 - Backward-compatible: loads the legacy format (plain JSON array of IDs) used by older versions; legacy entries are assigned the zero time and pruned on load
 - Persists across sessions and application restarts
@@ -448,6 +448,6 @@ This async resolution uses the existing `UpdateNotificationUrlMsg` message type,
 
 - **Mark as Unread**: GitHub's REST API does not support marking notifications as unread, so this feature is not available. Bookmarks provide a workaround by keeping items visible in the inbox.
 - **Discussion/Release Content**: Only PR and Issue notifications can display detailed content in the sidebar; other types open directly in the browser.
-- **Local State Persistence**: Bookmarks and Done status are stored locally (`~/.local/state/gh-dash/`) and are not synced across machines or with GitHub.
+- **Local State Persistence**: Bookmarks and Done status are stored locally (`~/.local/state/dehub/`) and are not synced across machines or with GitHub.
 - **Done Notifications in API**: GitHub’s “mark as Done” doesn’t delete notifications — they still appear in API responses with `all=true`. We track Done IDs with timestamps locally to filter them out and detect new activity. Entries older than 90 days are pruned on startup.
 - **Server-Side Reason Filtering**: GitHub's notification API does not support filtering by reason on the server side. Reason filters are applied client-side after fetching notifications, which means all notifications are fetched before filtering.

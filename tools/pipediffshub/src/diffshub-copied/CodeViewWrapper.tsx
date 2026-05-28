@@ -86,7 +86,7 @@ interface CodeViewWrapperProps {
   searchQuery: string;
 }
 
-const DIFF_SEARCH_HIGHLIGHT_NAME = 'gh-dash-diff-search';
+const DIFF_SEARCH_HIGHLIGHT_NAME = 'dehub-diff-search';
 
 interface CSSHighlightsRegistry {
   delete(name: string): boolean;

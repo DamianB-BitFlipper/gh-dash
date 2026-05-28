@@ -1,4 +1,4 @@
-# Contributing To `gh-dash`
+# Contributing To `dehub`
 
 Thank you for investing your time in contributing to our project!
 
@@ -18,7 +18,7 @@ The project has strict rules for AI usage. Please see the [AI Usage Policy](AI_P
 
 ### I Have an Idea for a Feature
 
-Like bug reports, first search through both issues and discussions and try to find if your feature has already been requested. Otherwise, open a discussion in the ["Feature Requests, Ideas"](https://github.com/dlvhdr/gh-dash/issues/new?template=feature_request.md) category.
+Like bug reports, first search through both issues and discussions and try to find if your feature has already been requested. Otherwise, open a discussion in the ["Feature Requests, Ideas"](https://github.com/dlvhdr/gh-dehub/issues/new?template=feature_request.md) category.
 
 ### I've Implemented a Feature
 
@@ -28,7 +28,7 @@ Like bug reports, first search through both issues and discussions and try to fi
 
 ### I Have a Question Which Is Neither a Bug Report nor a Feature Request
 
-Open a [Q&A discussion](https://github.com/dlvhdr/gh-dash/discussions/categories/q-a), or join our [Discord Server](https://discord.gg/SXNXp9NctV) and ask away in the #help forum channel.
+Open a [Q&A discussion](https://github.com/dlvhdr/gh-dehub/discussions/categories/q-a), or join our [Discord Server](https://discord.gg/SXNXp9NctV) and ask away in the #help forum channel.
 
 ## Working on the Code
 
@@ -41,7 +41,7 @@ Using Devbox will get your dev environment up and running easily and make sure w
 - Clone this repo
 
 ```sh
-git clone git@github.com:dlvhdr/gh-dash.git && cd gh-dash
+git clone git@github.com:dlvhdr/gh-dehub.git && cd dehub
 ```
 
 - Install `devbox`
@@ -90,7 +90,7 @@ To navigate our codebase with confidence, familiarize yourself with:
 
 - Write to the log by using Charm's `log` package
 - Tail the log by running `task logs`
-- Run `dash` in debug mode with `task debug` in another terminal window / pane
+- Run `dehub` in debug mode with `task debug` in another terminal window / pane
 
 ```go
 import "charm.land/log/v2"

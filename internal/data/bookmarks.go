@@ -11,7 +11,7 @@ import (
 
 const (
 	defaultXDGStateDir = ".local/state"
-	dashDir            = "gh-dash"
+	dashDir            = "dehub"
 )
 
 // NotificationIDStore is a generic store for persisting sets of notification IDs.
