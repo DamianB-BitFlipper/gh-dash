@@ -35,6 +35,7 @@ import (
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prssection"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prview"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/section"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/selection"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/sidebar"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/tabs"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/tasks"
@@ -899,12 +900,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						case prview.PRActionComment:
 							return m, m.openSidebarForInputNoScroll(m.prView.SetIsCommenting)
 
-					case prview.PRActionDiff:
-						if pr := m.notificationView.GetSubjectPR(); pr != nil {
-							cmd = common.DiffPR(pr.GetNumber(), pr.GetRepoNameWithOwner(),
-								pr.GetTitle(),
-								pr.GetUrl(),
-								m.ctx.Config.Pager.Diff,
+						case prview.PRActionDiff:
+							if pr := m.notificationView.GetSubjectPR(); pr != nil {
+								cmd = common.DiffPR(pr.GetNumber(), pr.GetRepoNameWithOwner(),
+									pr.GetTitle(),
+									pr.GetUrl(),
+									m.ctx.Config.Pager.Diff,
 									m.ctx.Config.RunDiffPagerInBackground(),
 									m.ctx.Config.GetFullScreenDiffPagerEnv())
 							}
@@ -1399,10 +1400,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		{
 			mouse := msg.Mouse()
-			pane, bounds := m.copySelectionPaneAt(mouse.X, mouse.Y)
-			if pane != copySelectionPaneNone {
+			regionID, bounds := copySelectionRegionAt(mouse.X, mouse.Y)
+			if regionID != "" {
 				x, y := clampCopySelectionPoint(mouse.X, mouse.Y, bounds)
-				m.copySelection.begin(pane, x, y)
+				m.copySelection.begin(regionID, x, y)
 				return m, nil
 			}
 		}
@@ -1410,7 +1411,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.MouseMotionMsg:
 		if m.copySelection.dragging {
 			mouse := msg.Mouse()
-			_, bounds := m.copySelectionPaneAt(m.copySelection.startX, m.copySelection.startY)
+			bounds := m.copySelectionRegionBounds()
 			x, y := clampCopySelectionPoint(mouse.X, mouse.Y, bounds)
 			m.copySelection.update(x, y)
 			return m, nil
@@ -1419,7 +1420,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.MouseReleaseMsg:
 		if m.copySelection.dragging {
 			mouse := msg.Mouse()
-			_, bounds := m.copySelectionPaneAt(m.copySelection.startX, m.copySelection.startY)
+			bounds := m.copySelectionRegionBounds()
 			x, y := clampCopySelectionPoint(mouse.X, mouse.Y, bounds)
 			m.copySelection.update(x, y)
 
@@ -1530,6 +1531,10 @@ func (m Model) View() tea.View {
 	v.ReportFocus = true
 	v.MouseMode = tea.MouseModeAllMotion
 
+	// Clear last frame's selection region registry before re-marking regions
+	// during this render pass. Bounds are managed by bubblezone's own scan.
+	selection.Reset()
+
 	if m.ctx.Config == nil {
 		v.Content = lipgloss.Place(
 			m.ctx.ScreenWidth,
@@ -1548,8 +1553,9 @@ func (m Model) View() tea.View {
 		if actionsSection, ok := currSection.(*actionssection.Model); ok && m.ctx.View == config.ActionsView {
 			content = m.renderActionsThreePane(actionsSection)
 		} else {
-			sectionView := m.renderCopySelectionContent(copySelectionPaneMain, currSection.View())
-			sidebarView = m.renderCopySelectionContent(copySelectionPanePreview, m.sidebar.View())
+			sectionView := selection.MarkStyled(selection.ID("main"), currSection.View())
+			sidebarView = m.sidebar.View()
+			m.registerSelectionRegions()
 			if m.ctx.PreviewPosition == "bottom" && m.sidebar.IsOpen {
 				content = lipgloss.JoinVertical(
 					lipgloss.Left,
@@ -1575,8 +1581,8 @@ func (m Model) View() tea.View {
 	layers := []*lipgloss.Layer{
 		lipgloss.NewLayer(zone.Scan(view)),
 	}
-	if logsSelectionLayer := m.renderCopySelectionPreviewLogsLayer(); logsSelectionLayer != nil {
-		layers = append(layers, logsSelectionLayer)
+	if selectionLayer := m.renderCopySelectionLayer(); selectionLayer != nil {
+		layers = append(layers, selectionLayer)
 	}
 
 	if currSection != nil {
@@ -2689,13 +2695,6 @@ func (m *Model) shouldUpdateActionRunView(msg tea.Msg) bool {
 		return false
 	}
 	return actionview.HandlesAsyncMsg(msg)
-}
-
-func (m Model) actionsLogsCopySelectionContent() (string, bool) {
-	if m.ctx == nil || m.ctx.View != config.ActionsView || m.actionRunView == nil {
-		return "", false
-	}
-	return m.actionRunView.LogsCopySelectionContent(), true
 }
 
 func (m *Model) syncSidebar() tea.Cmd {

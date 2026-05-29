@@ -4,8 +4,10 @@ import (
 	"fmt"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/dlvhdr/gh-dehub/v4/internal/data"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/selection"
 	"github.com/dlvhdr/gh-dehub/v4/internal/utils"
 )
 
@@ -59,6 +61,30 @@ func (m *Model) renderChangedFiles() string {
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left, files...)
+}
+
+// filesSelectionBlocks reproduces the Files-changed layout to compute each
+// file row's content offset and height for selection scoping. Must match the
+// assembly order in renderChangedFiles.
+func (m *Model) filesSelectionBlocks() []selection.Block {
+	if m.pr == nil || m.pr.Data == nil || m.pr.Data.Primary == nil {
+		return nil
+	}
+	var blocks []selection.Block
+	contentY := 0
+	for _, file := range m.pr.Data.Primary.Files.Nodes {
+		rendered := m.renderFile(file)
+		h := lipgloss.Height(rendered)
+		blocks = append(blocks, selection.Block{
+			ID:       selection.ID("pr-file", file.Path),
+			ContentY: contentY,
+			Height:   h,
+			Plain:    ansi.Strip(rendered),
+			Styled:   rendered,
+		})
+		contentY += h
+	}
+	return blocks
 }
 
 func (m *Model) renderFile(file data.ChangedFile) string {

@@ -71,6 +71,17 @@ func (m *Model) SyncViewPort(content string) {
 	m.viewport.SetContent(content)
 }
 
+// YOffset returns the viewport's current vertical scroll offset in content
+// lines.
+func (m *Model) YOffset() int {
+	return m.viewport.YOffset()
+}
+
+// Height returns the viewport's visible height in content lines.
+func (m *Model) Height() int {
+	return m.viewport.Height()
+}
+
 func (m *Model) getNumPrsPerPage() int {
 	if m.ListItemHeight == 0 {
 		return 0

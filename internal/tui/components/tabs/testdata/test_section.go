@@ -6,6 +6,7 @@ import (
 	"github.com/dlvhdr/gh-dehub/v4/internal/config"
 	"github.com/dlvhdr/gh-dehub/v4/internal/data"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/section"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/selection"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/table"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
 )
@@ -89,6 +90,11 @@ func (t *TestSection) GetPromptConfirmationAction() string {
 // GetTotalCount implements section.Section.
 func (t *TestSection) GetTotalCount() int {
 	return 10
+}
+
+// RowsSelectionScroll implements section.Section.
+func (t *TestSection) RowsSelectionScroll(contentTop int) selection.Scroll {
+	return selection.Scroll{}
 }
 
 // GetType implements section.Section.

@@ -19,6 +19,7 @@ import (
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/inputbox"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prrow"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prssection"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/selection"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/tasks"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
@@ -286,14 +287,14 @@ func (m *Model) BodyView() string {
 func (m *Model) viewHeader() string {
 	header := strings.Builder{}
 
-	header.WriteString(m.renderFullNameAndNumber())
+	header.WriteString(m.markHeaderSelection("name", m.renderFullNameAndNumber()))
 	header.WriteString("\n")
 
-	header.WriteString(m.renderTitle())
+	header.WriteString(m.markHeaderSelection("title", m.renderTitle()))
 	header.WriteString("\n\n")
-	header.WriteString(m.renderBranches())
+	header.WriteString(m.markHeaderSelection("branches", m.renderBranches()))
 	header.WriteString("\n\n")
-	header.WriteString(m.renderAuthor())
+	header.WriteString(m.markHeaderSelection("author", m.renderAuthor()))
 	header.WriteString("\n\n")
 	header.WriteString(
 		lipgloss.NewStyle().Width(m.width).
@@ -346,6 +347,15 @@ func (m *Model) ViewCompletions() string {
 
 func (m *Model) InputBoxLineFromBottom() int {
 	return m.editor.LineFromBottom()
+}
+
+// markHeaderSelection wraps a PR header field as its own scoped selection
+// region so it can be selected independently of the rest of the preview.
+func (m *Model) markHeaderSelection(field, rendered string) string {
+	if rendered == "" || m.pr == nil || m.pr.Data == nil || m.pr.Data.Primary == nil {
+		return rendered
+	}
+	return selection.MarkStyled(selection.ID("pr", m.pr.Data.Primary.Url, "header", field), rendered)
 }
 
 func (m *Model) renderFullNameAndNumber() string {
@@ -829,13 +839,6 @@ func (m Model) ChecksLogsSearchValue() (string, bool) {
 	return m.actionChecks.LogsSearchValue(), true
 }
 
-func (m Model) ChecksLogsCopySelectionContent() (string, bool) {
-	if !m.IsChecksTab() || m.actionChecks == nil {
-		return "", false
-	}
-	return m.actionChecks.LogsCopySelectionContent(), true
-}
-
 func (m *Model) ShouldUpdateChecks(msg tea.Msg) bool {
 	return m.IsChecksTab() && m.actionChecks != nil && actionview.HandlesAsyncMsg(msg)
 }
@@ -1202,6 +1205,10 @@ func (m Model) SelectedTab() string {
 
 func (m Model) IsActivityTab() bool {
 	return m.carousel.SelectedItem() == tabs[1]
+}
+
+func (m Model) IsFilesTab() bool {
+	return m.carousel.SelectedItem() == tabs[4]
 }
 
 func (m Model) HasFocusedReviewThread() bool {

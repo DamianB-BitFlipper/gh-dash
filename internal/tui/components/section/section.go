@@ -21,6 +21,7 @@ import (
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/common"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prompt"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/search"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/selection"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/table"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
@@ -168,6 +169,7 @@ type Section interface {
 	GetItemSingularForm() string
 	GetItemPluralForm() string
 	GetTotalCount() int
+	RowsSelectionScroll(contentTop int) selection.Scroll
 }
 
 type Identifier interface {
@@ -615,6 +617,28 @@ func (m *BaseModel) ResetRows() {
 	m.Table.Rows = nil
 	m.ResetPageInfo()
 	m.Table.ResetCurrItem()
+}
+
+// RowsSelectionScroll describes the section's row list as a scrollable selection
+// area, so each visible row can be selected independently. contentTop is the
+// screen Y of the first content row of the section (top of the section view,
+// below the tabs bar).
+func (m *BaseModel) RowsSelectionScroll(contentTop int) selection.Scroll {
+	originX := m.Ctx.Styles.Section.ContainerStyle.GetPaddingLeft()
+	// The table renders its column header above the rows viewport, and a search
+	// bar may be shown above that.
+	headerY := contentTop + common.TableHeaderHeight
+	if m.bodySearchVisible() {
+		headerY += common.SearchHeight
+	}
+	return selection.Scroll{
+		OriginX:       originX,
+		OriginY:       headerY,
+		Width:         m.Table.RowsWidth(),
+		VisibleHeight: m.Table.RowsViewportHeight(),
+		YOffset:       m.Table.RowsViewportYOffset(),
+		Blocks:        m.Table.SelectionBlocks(),
+	}
 }
 
 func (m *BaseModel) LastUpdated() time.Time {

@@ -8,6 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/selection"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/keys"
 )
@@ -117,7 +118,14 @@ func (m Model) renderContent() string {
 		m.ctx.Styles.Sidebar.PagerStyle.
 			Render(fmt.Sprintf("%d%%", int(m.viewport.ScrollPercent()*100))),
 	)
-	return lipgloss.JoinVertical(lipgloss.Top, content...)
+	// Mark the inner (border-excluded) preview content as a coarse selection
+	// region. Finer-grained sub-component regions (comment cards, review
+	// threads, etc.) are marked deeper within the content and win via
+	// innermost-region hit-testing.
+	return selection.MarkStyled(
+		selection.ID("preview"),
+		lipgloss.JoinVertical(lipgloss.Top, content...),
+	)
 }
 
 func (m *Model) SetHeader(header string) {
@@ -159,6 +167,12 @@ func (m *Model) YOffset() int {
 
 func (m *Model) ViewportHeight() int {
 	return m.viewport.Height()
+}
+
+// HeaderHeight is the number of screen rows occupied by the sidebar header,
+// which sits above the scrollable viewport content.
+func (m *Model) HeaderHeight() int {
+	return lipgloss.Height(m.header)
 }
 
 func (m *Model) ScrollToOffset(offset int) {

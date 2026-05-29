@@ -18,11 +18,11 @@ import (
 	"charm.land/lipgloss/v2"
 	"charm.land/log/v2"
 	"github.com/charmbracelet/x/ansi"
-	zone "github.com/lrstanley/bubblezone/v2"
 
 	data "github.com/dlvhdr/gh-dehub/v4/internal/data/actions"
 	api "github.com/dlvhdr/gh-dehub/v4/internal/data/actionsapi"
 	parser "github.com/dlvhdr/gh-dehub/v4/internal/data/actionsparser"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/selection"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/theme"
 )
 
@@ -1753,7 +1753,7 @@ func (m *model) logsContentView() string {
 		))
 	}
 
-	return zone.Mark("preview-logs", m.logsViewport.View())
+	return selection.Mark(selection.PreviewLogsID, m.LogsCopySelectionContent(), m.logsViewport.View())
 }
 
 func (m *model) getRunItemById(runId string) *runItem {

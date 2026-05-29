@@ -9,15 +9,18 @@ import (
 	"charm.land/glamour/v2"
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/compat"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/dlvhdr/gh-dehub/v4/internal/data"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/cmpcontroller"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/selection"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/markdown"
 	"github.com/dlvhdr/gh-dehub/v4/internal/utils"
 )
 
 type cachedActivity struct {
+	ID             string
 	UpdatedAt      time.Time
 	RenderedString string
 	CompactCard    string
@@ -159,6 +162,7 @@ func (m *Model) buildCachedActivities(markdownRenderer glamour.TermRenderer) []c
 			continue
 		}
 		activities = append(activities, cachedActivity{
+			ID:          selection.ID("activity", "thread", review.Id),
 			UpdatedAt:   thread.UpdatedAt(),
 			FocusTarget: i,
 			Thread:      &cachedThread,
@@ -176,6 +180,8 @@ func (m *Model) buildCachedActivities(markdownRenderer glamour.TermRenderer) []c
 			continue
 		}
 		activities = append(activities, cachedActivity{
+			ID: selection.ID("activity", "comment",
+				fmt.Sprintf("%s:%s", c.Author.Login, c.UpdatedAt.Format(time.RFC3339Nano))),
 			UpdatedAt:      comment.UpdatedAt,
 			RenderedString: renderedComment,
 			CompactCard:    m.renderCompactComment(comment),
@@ -190,6 +196,8 @@ func (m *Model) buildCachedActivities(markdownRenderer glamour.TermRenderer) []c
 		}
 		header := m.renderReviewHeader(review)
 		activities = append(activities, cachedActivity{
+			ID: selection.ID("activity", "review",
+				fmt.Sprintf("%s:%s", review.Author.Login, review.UpdatedAt.Format(time.RFC3339Nano))),
 			UpdatedAt:   review.UpdatedAt,
 			FocusTarget: unfocusedActivity,
 			CompactCard: m.renderCompactActivityCard(
@@ -247,6 +255,60 @@ func (m *Model) renderCachedActivity(activity cachedActivity) string {
 	}
 
 	return activity.RenderedString
+}
+
+// activitySelectionBlocks reproduces the activity body layout to compute, for
+// each card, its first line offset within the body content and its height, so
+// the selection engine can scope a drag to a single card. The offsets here MUST
+// match the assembly order in renderActivity (title, then each card, then the
+// new-comment card), since both run for the Activity tab.
+func (m *Model) activitySelectionBlocks() []selection.Block {
+	if !m.IsActivityTab() || m.editor.Mode() != cmpcontroller.ModeNone {
+		return nil
+	}
+	width := m.getIndentedContentWidth()
+	if !m.pr.Data.IsEnriched {
+		return nil
+	}
+	activities := m.cachedActivities(width)
+
+	title := m.ctx.Styles.Common.MainTextStyle.MarginBottom(1).Underline(true).Render(
+		fmt.Sprintf("%s  %d activity items", constants.CommentsIcon, len(activities)),
+	)
+	// renderActivity joins title above the cards with JoinVertical, so cards
+	// begin after the title's rendered height.
+	contentY := lipgloss.Height(title)
+
+	var blocks []selection.Block
+	for _, activity := range activities {
+		card := m.renderCachedActivity(activity)
+		h := lipgloss.Height(card)
+		if activity.ID != "" {
+			blocks = append(blocks, selection.Block{
+				ID:       activity.ID,
+				ContentY: contentY,
+				Height:   h,
+				Plain:    ansi.Strip(card),
+				Styled:   card,
+			})
+		}
+		contentY += h
+	}
+	return blocks
+}
+
+// PreviewSelectionBlocks exposes the current tab's per-sub-component selection
+// blocks for the selection engine. ContentY is relative to the start of the
+// sidebar body content (before scrolling).
+func (m *Model) PreviewSelectionBlocks() []selection.Block {
+	switch {
+	case m.IsActivityTab():
+		return m.activitySelectionBlocks()
+	case m.IsFilesTab():
+		return m.filesSelectionBlocks()
+	default:
+		return nil
+	}
 }
 
 func (m *Model) activityBodyCacheKey(fingerprint string) (string, bool) {

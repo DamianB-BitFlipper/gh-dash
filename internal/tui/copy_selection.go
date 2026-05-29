@@ -5,30 +5,20 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
-	zone "github.com/lrstanley/bubblezone/v2"
 
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/common"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prrow"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/selection"
 )
 
-type copySelectionPane int
-
-const (
-	copySelectionPaneNone copySelectionPane = iota
-	copySelectionPaneMain
-	copySelectionPanePreview
-	copySelectionPanePreviewLogs
-)
-
-type copySelectionBounds struct {
-	x      int
-	y      int
-	width  int
-	height int
-}
-
+// copySelectionModel tracks an in-progress mouse drag selection. Selection is
+// scoped to a single registered region (see internal/tui/components/selection):
+// the region the drag started in. The drag end point is always clamped to that
+// region's bounds so a selection started inside a sub-component (e.g. a single
+// comment card) stays scoped to it.
 type copySelectionModel struct {
 	dragging bool
-	pane     copySelectionPane
+	regionID string
 	startX   int
 	startY   int
 	endX     int
@@ -39,9 +29,9 @@ func (s *copySelectionModel) cancel() {
 	*s = copySelectionModel{}
 }
 
-func (s *copySelectionModel) begin(pane copySelectionPane, x, y int) {
+func (s *copySelectionModel) begin(regionID string, x, y int) {
 	s.dragging = true
-	s.pane = pane
+	s.regionID = regionID
 	s.startX = x
 	s.startY = y
 	s.endX = x
@@ -57,97 +47,39 @@ func (s *copySelectionModel) update(x, y int) {
 }
 
 func (s copySelectionModel) hasSelection() bool {
-	return s.dragging && s.pane != copySelectionPaneNone
+	return s.dragging && s.regionID != ""
 }
 
 func (s copySelectionModel) moved() bool {
 	return s.startX != s.endX || s.startY != s.endY
 }
 
-func (m *Model) copySelectionPaneAt(x, y int) (copySelectionPane, copySelectionBounds) {
-	if logsBounds, ok := m.copySelectionPreviewLogsBounds(); ok && inCopySelectionBounds(x, y, logsBounds) {
-		return copySelectionPanePreviewLogs, logsBounds
+// copySelectionRegionAt returns the innermost registered selection region
+// containing the point, along with its bounds. The empty id means no region.
+func copySelectionRegionAt(x, y int) (string, selection.Bounds) {
+	id := selection.InnermostAt(x, y)
+	if id == "" {
+		return "", selection.Bounds{}
 	}
-
-	mainBounds, previewBounds := m.copySelectionBounds()
-	if inCopySelectionBounds(x, y, previewBounds) {
-		return copySelectionPanePreview, previewBounds
+	bounds, _, _, ok := selection.Region(id)
+	if !ok {
+		return "", selection.Bounds{}
 	}
-	if inCopySelectionBounds(x, y, mainBounds) {
-		return copySelectionPaneMain, mainBounds
-	}
-	return copySelectionPaneNone, copySelectionBounds{}
+	return id, bounds
 }
 
-func (m *Model) copySelectionPreviewLogsBounds() (copySelectionBounds, bool) {
-	if _, ok := m.previewLogsCopySelectionContent(); !ok {
-		return copySelectionBounds{}, false
+// copySelectionRegionBounds resolves the active region's bounds, or empty bounds
+// when there is none.
+func (m *Model) copySelectionRegionBounds() selection.Bounds {
+	if !m.copySelection.hasSelection() {
+		return selection.Bounds{}
 	}
-
-	logsZone := zone.Get("preview-logs")
-	if logsZone == nil || logsZone.IsZero() {
-		return copySelectionBounds{}, false
-	}
-	return copySelectionBounds{
-		x:      logsZone.StartX,
-		y:      logsZone.StartY,
-		width:  max(0, logsZone.EndX-logsZone.StartX+1),
-		height: max(0, logsZone.EndY-logsZone.StartY+1),
-	}, true
+	bounds, _, _, _ := selection.Region(m.copySelection.regionID)
+	return bounds
 }
 
-func (m *Model) copySelectionBounds() (copySelectionBounds, copySelectionBounds) {
-	contentY := m.copySelectionContentY()
-	main := copySelectionBounds{
-		x:      0,
-		y:      contentY,
-		width:  max(0, m.ctx.MainContentWidth),
-		height: max(0, m.ctx.MainContentHeight),
-	}
-
-	if !m.sidebar.IsOpen {
-		return main, copySelectionBounds{}
-	}
-
-	if m.ctx.PreviewPosition == "bottom" {
-		return main, copySelectionBounds{
-			x:      0,
-			y:      contentY + m.ctx.MainContentHeight + m.ctx.Styles.Sidebar.BorderWidth,
-			width:  max(0, m.ctx.DynamicPreviewWidth),
-			height: max(0, m.ctx.DynamicPreviewHeight),
-		}
-	}
-
-	borderWidth := m.ctx.Styles.Sidebar.BorderWidth
-	return main, copySelectionBounds{
-		x:      m.ctx.MainContentWidth + borderWidth,
-		y:      contentY,
-		width:  max(0, m.ctx.DynamicPreviewWidth-borderWidth),
-		height: max(0, m.ctx.MainContentHeight),
-	}
-}
-
-func (m *Model) copySelectionPreviewDisplayBounds() copySelectionBounds {
-	contentY := m.copySelectionContentY()
-	if !m.sidebar.IsOpen {
-		return copySelectionBounds{}
-	}
-	if m.ctx.PreviewPosition == "bottom" {
-		return copySelectionBounds{
-			x:      0,
-			y:      contentY + m.ctx.MainContentHeight,
-			width:  max(0, m.ctx.DynamicPreviewWidth),
-			height: max(0, m.ctx.DynamicPreviewHeight+m.ctx.Styles.Sidebar.BorderWidth),
-		}
-	}
-	return copySelectionBounds{
-		x:      m.ctx.MainContentWidth,
-		y:      contentY,
-		width:  max(0, m.ctx.DynamicPreviewWidth),
-		height: max(0, m.ctx.MainContentHeight),
-	}
-}
-
+// copySelectionContentY is the screen Y of the first content row below the tabs
+// bar (the top of both the main and preview panes).
 func (m *Model) copySelectionContentY() int {
 	if m.ctx.View == "repo" {
 		return 1
@@ -155,121 +87,159 @@ func (m *Model) copySelectionContentY() int {
 	return common.TabsHeight
 }
 
-func inCopySelectionBounds(x, y int, bounds copySelectionBounds) bool {
-	return bounds.width > 0 && bounds.height > 0 &&
-		x >= bounds.x && x < bounds.x+bounds.width &&
-		y >= bounds.y && y < bounds.y+bounds.height
+// previewContentOrigin returns the screen top-left of the sidebar's inner
+// content area (inside the border), for the current preview position.
+func (m *Model) previewContentOrigin() (x, y int) {
+	contentY := m.copySelectionContentY()
+	if m.ctx.PreviewPosition == "bottom" {
+		// Bottom mode: a top border occupies BorderWidth rows above the content.
+		return 0, contentY + m.ctx.MainContentHeight + m.ctx.Styles.Sidebar.BorderWidth
+	}
+	// Right mode: a left border occupies BorderWidth cols left of the content.
+	return m.ctx.MainContentWidth + m.ctx.Styles.Sidebar.BorderWidth, contentY
 }
 
-func clampCopySelectionPoint(x, y int, bounds copySelectionBounds) (int, int) {
-	if bounds.width <= 0 || bounds.height <= 0 {
-		return bounds.x, bounds.y
+// registerSelectionRegions registers all per-subcomponent selection regions for
+// the current frame: the main section's rows and the preview's sub-components.
+// Bounds are computed arithmetically from each scroll area's origin and offset,
+// because bubblezone markers do not survive a viewport's line clipping.
+func (m *Model) registerSelectionRegions() {
+	contentTop := m.copySelectionContentY()
+
+	if currSection := m.getCurrSection(); currSection != nil {
+		registerScroll(currSection.RowsSelectionScroll(contentTop))
 	}
-	x = min(max(x, bounds.x), bounds.x+bounds.width-1)
-	y = min(max(y, bounds.y), bounds.y+bounds.height-1)
+
+	if m.sidebar.IsOpen {
+		registerScroll(m.previewSelectionScroll())
+	}
+}
+
+// previewSelectionScroll describes the current sidebar content as a scrollable
+// selection area (or an empty Scroll when it has no sub-regions).
+func (m *Model) previewSelectionScroll() selection.Scroll {
+	var blocks []selection.Block
+	switch m.getCurrRowData().(type) {
+	case *prrow.Data:
+		blocks = m.prView.PreviewSelectionBlocks()
+	}
+	if len(blocks) == 0 {
+		return selection.Scroll{}
+	}
+
+	originX, originY := m.previewContentOrigin()
+	return selection.Scroll{
+		// Content is horizontally padded inside the viewport.
+		OriginX: originX + m.ctx.Styles.Sidebar.ContentPadding,
+		// The scrollable viewport begins below the (non-scrolling) header.
+		OriginY:       originY + m.sidebar.HeaderHeight(),
+		Width:         max(0, m.sidebar.GetSidebarContentWidth()-2*m.ctx.Styles.Sidebar.ContentPadding),
+		VisibleHeight: m.sidebar.ViewportHeight(),
+		YOffset:       m.sidebar.YOffset(),
+		Blocks:        blocks,
+	}
+}
+
+// registerScroll converts a scroll area's content-relative selection Blocks into
+// absolute screen bounds and registers them.
+//
+// Blocks that are fully scrolled out of view are skipped. Partially visible
+// blocks are clipped to the visible window (both their bounds and their
+// styled/plain content) so the highlight overlay and copy stay correct.
+func registerScroll(s selection.Scroll) {
+	originX, originY := s.OriginX, s.OriginY
+	width, visibleHeight, yOffset := s.Width, s.VisibleHeight, s.YOffset
+	if width <= 0 || visibleHeight <= 0 {
+		return
+	}
+	viewTop := yOffset
+	viewBottom := yOffset + visibleHeight // exclusive
+
+	for _, block := range s.Blocks {
+		if block.ID == "" || block.Height <= 0 {
+			continue
+		}
+		blockTop := block.ContentY
+		blockBottom := block.ContentY + block.Height // exclusive
+
+		// Intersect the block's content-line range with the visible window.
+		visTop := max(blockTop, viewTop)
+		visBottom := min(blockBottom, viewBottom)
+		if visBottom <= visTop {
+			continue // fully scrolled out
+		}
+
+		// Drop the leading lines of the block that are scrolled above the window.
+		skip := visTop - blockTop
+		visibleRows := visBottom - visTop
+
+		bounds := selection.Bounds{
+			X:      originX,
+			Y:      originY + (visTop - yOffset),
+			Width:  width,
+			Height: visibleRows,
+		}
+		plain := sliceContentLines(block.Plain, skip, visibleRows)
+		styled := sliceContentLines(block.Styled, skip, visibleRows)
+		selection.RegisterBounds(block.ID, bounds, plain, styled)
+	}
+}
+
+// sliceContentLines returns count lines from content starting at the given line
+// offset (0-based). Missing lines are dropped; it never pads.
+func sliceContentLines(content string, offset, count int) string {
+	if count <= 0 {
+		return ""
+	}
+	lines := strings.Split(content, "\n")
+	if offset >= len(lines) {
+		return ""
+	}
+	end := min(offset+count, len(lines))
+	return strings.Join(lines[offset:end], "\n")
+}
+
+func clampCopySelectionPoint(x, y int, bounds selection.Bounds) (int, int) {
+	if bounds.Empty() {
+		return bounds.X, bounds.Y
+	}
+	x = min(max(x, bounds.X), bounds.X+bounds.Width-1)
+	y = min(max(y, bounds.Y), bounds.Y+bounds.Height-1)
 	return x, y
 }
 
+// copySelectionText extracts the plain text the user dragged over within the
+// active region.
 func (m *Model) copySelectionText() string {
 	if !m.copySelection.hasSelection() {
 		return ""
 	}
-
-	bounds, content, ok := m.copySelectionPaneContent(m.copySelection.pane)
+	bounds, plain, _, ok := selection.Region(m.copySelection.regionID)
 	if !ok {
 		return ""
 	}
 
 	startX, startY := clampCopySelectionPoint(m.copySelection.startX, m.copySelection.startY, bounds)
 	endX, endY := clampCopySelectionPoint(m.copySelection.endX, m.copySelection.endY, bounds)
-	return extractCopySelectionText(content, bounds, startX, startY, endX, endY)
+	return extractCopySelectionText(plain, bounds, startX, startY, endX, endY)
 }
 
-func (m *Model) copySelectionPaneContent(pane copySelectionPane) (copySelectionBounds, string, bool) {
-	mainBounds, previewBounds := m.copySelectionBounds()
-	switch pane {
-	case copySelectionPaneMain:
-		if currSection := m.getCurrSection(); currSection != nil {
-			return mainBounds, currSection.View(), true
-		}
-	case copySelectionPanePreview:
-		return previewBounds, m.copySelectionPreviewContent(), true
-	case copySelectionPanePreviewLogs:
-		bounds, ok := m.copySelectionPreviewLogsBounds()
-		if !ok {
-			return copySelectionBounds{}, "", false
-		}
-		content, ok := m.previewLogsCopySelectionContent()
-		return bounds, ansi.Strip(content), ok
-	}
-	return copySelectionBounds{}, "", false
-}
-
-func (m *Model) copySelectionPreviewContent() string {
-	return stripCopySelectionPreviewBorder(
-		m.sidebar.View(),
-		m.ctx.PreviewPosition,
-		m.ctx.Styles.Sidebar.BorderWidth,
-	)
-}
-
-func stripCopySelectionPreviewBorder(content, position string, borderWidth int) string {
-	if borderWidth <= 0 || content == "" {
-		return ansi.Strip(content)
-	}
-	lines := strings.Split(ansi.Strip(content), "\n")
-	if position == "bottom" {
-		if len(lines) <= borderWidth {
-			return ""
-		}
-		return strings.Join(lines[borderWidth:], "\n")
-	}
-
-	for i, line := range lines {
-		lines[i] = copySelectionSliceCells(line, borderWidth, lipgloss.Width(line))
-	}
-	return strings.Join(lines, "\n")
-}
-
-func (m *Model) renderCopySelectionContent(pane copySelectionPane, content string) string {
-	if !m.copySelection.hasSelection() || m.copySelection.pane != pane {
-		return content
-	}
-	if pane == copySelectionPanePreviewLogs {
-		return content
-	}
-
-	mainBounds, _ := m.copySelectionBounds()
-	bounds := mainBounds
-	if pane == copySelectionPanePreview {
-		bounds = m.copySelectionPreviewDisplayBounds()
-	}
-
-	style := lipgloss.NewStyle().
-		Background(m.ctx.Theme.SelectedBackground).
-		Foreground(m.ctx.Theme.PrimaryText)
-	return renderCopySelectionHighlight(
-		content,
-		bounds,
-		m.copySelection.startX,
-		m.copySelection.startY,
-		m.copySelection.endX,
-		m.copySelection.endY,
-		style,
-	)
-}
-
-func (m *Model) renderCopySelectionPreviewLogsLayer() *lipgloss.Layer {
-	if !m.copySelection.hasSelection() || m.copySelection.pane != copySelectionPanePreviewLogs {
+// renderCopySelectionLayer renders the highlighted selection for the active
+// region as an overlay layer positioned at the region's screen origin.
+//
+// The overlay is built from the region's *styled* content so it is visually
+// identical to what's underneath, except the selected span gets the highlight
+// background. Compositing it over the base view therefore preserves all
+// formatting and only recolors the dragged span. The same uniform path works
+// for every region (panes and computed sub-component regions) regardless of
+// nesting depth. Returns nil when there is no active selection or the region
+// can't be resolved.
+func (m *Model) renderCopySelectionLayer() *lipgloss.Layer {
+	if !m.copySelection.hasSelection() {
 		return nil
 	}
-
-	bounds, ok := m.copySelectionPreviewLogsBounds()
-	if !ok {
-		return nil
-	}
-	content, ok := m.previewLogsCopySelectionContent()
-	if !ok || content == "" {
+	bounds, _, styled, ok := selection.Region(m.copySelection.regionID)
+	if !ok || styled == "" || bounds.Empty() {
 		return nil
 	}
 
@@ -277,7 +247,7 @@ func (m *Model) renderCopySelectionPreviewLogsLayer() *lipgloss.Layer {
 		Background(m.ctx.Theme.SelectedBackground).
 		Foreground(m.ctx.Theme.PrimaryText)
 	highlighted := renderCopySelectionHighlight(
-		content,
+		styled,
 		bounds,
 		m.copySelection.startX,
 		m.copySelection.startY,
@@ -286,29 +256,25 @@ func (m *Model) renderCopySelectionPreviewLogsLayer() *lipgloss.Layer {
 		style,
 	)
 	highlighted = clipCopySelectionContent(highlighted, bounds)
-	return lipgloss.NewLayer(highlighted).X(bounds.x).Y(bounds.y)
-}
-
-func (m *Model) previewLogsCopySelectionContent() (string, bool) {
-	if content, ok := m.prView.ChecksLogsCopySelectionContent(); ok {
-		return content, true
+	if highlighted == "" {
+		return nil
 	}
-	return m.actionsLogsCopySelectionContent()
+	return lipgloss.NewLayer(highlighted).X(bounds.X).Y(bounds.Y)
 }
 
-func clipCopySelectionContent(content string, bounds copySelectionBounds) string {
-	if bounds.width <= 0 || bounds.height <= 0 || content == "" {
+func clipCopySelectionContent(content string, bounds selection.Bounds) string {
+	if bounds.Empty() || content == "" {
 		return ""
 	}
 
 	lines := strings.Split(content, "\n")
-	if len(lines) > bounds.height {
-		lines = lines[:bounds.height]
+	if len(lines) > bounds.Height {
+		lines = lines[:bounds.Height]
 	}
 	for i, line := range lines {
 		lineWidth := lipgloss.Width(line)
-		if lineWidth > bounds.width {
-			lines[i] = ansi.Cut(line, 0, bounds.width)
+		if lineWidth > bounds.Width {
+			lines[i] = ansi.Cut(line, 0, bounds.Width)
 		}
 	}
 	return strings.Join(lines, "\n")
@@ -316,23 +282,23 @@ func clipCopySelectionContent(content string, bounds copySelectionBounds) string
 
 func renderCopySelectionHighlight(
 	content string,
-	bounds copySelectionBounds,
+	bounds selection.Bounds,
 	startX int,
 	startY int,
 	endX int,
 	endY int,
 	style lipgloss.Style,
 ) string {
-	if bounds.width <= 0 || bounds.height <= 0 {
+	if bounds.Empty() {
 		return content
 	}
 	startX, startY = clampCopySelectionPoint(startX, startY, bounds)
 	endX, endY = clampCopySelectionPoint(endX, endY, bounds)
 
-	startCol := startX - bounds.x
-	endCol := endX - bounds.x
-	startRow := startY - bounds.y
-	endRow := endY - bounds.y
+	startCol := startX - bounds.X
+	endCol := endX - bounds.X
+	startRow := startY - bounds.Y
+	endRow := endY - bounds.Y
 	if startRow > endRow || (startRow == endRow && startCol > endCol) {
 		startRow, endRow = endRow, startRow
 		startCol, endCol = endCol, startCol
@@ -347,7 +313,7 @@ func renderCopySelectionHighlight(
 	for row := startRow; row <= endRow; row++ {
 		line := lines[row]
 		from := 0
-		to := bounds.width
+		to := bounds.Width
 		if row == startRow {
 			from = startCol
 		}
@@ -372,17 +338,17 @@ func renderCopySelectionHighlight(
 	return strings.Join(lines, "\n")
 }
 
-func extractCopySelectionText(content string, bounds copySelectionBounds, startX, startY, endX, endY int) string {
-	if bounds.width <= 0 || bounds.height <= 0 {
+func extractCopySelectionText(content string, bounds selection.Bounds, startX, startY, endX, endY int) string {
+	if bounds.Empty() {
 		return ""
 	}
 	startX, startY = clampCopySelectionPoint(startX, startY, bounds)
 	endX, endY = clampCopySelectionPoint(endX, endY, bounds)
 
-	startCol := startX - bounds.x
-	endCol := endX - bounds.x
-	startRow := startY - bounds.y
-	endRow := endY - bounds.y
+	startCol := startX - bounds.X
+	endCol := endX - bounds.X
+	startRow := startY - bounds.Y
+	endRow := endY - bounds.Y
 	if startRow > endRow || (startRow == endRow && startCol > endCol) {
 		startRow, endRow = endRow, startRow
 		startCol, endCol = endCol, startCol
@@ -398,7 +364,7 @@ func extractCopySelectionText(content string, bounds copySelectionBounds, startX
 	for row := startRow; row <= endRow; row++ {
 		line := lines[row]
 		from := 0
-		to := bounds.width
+		to := bounds.Width
 		if row == startRow {
 			from = startCol
 		}

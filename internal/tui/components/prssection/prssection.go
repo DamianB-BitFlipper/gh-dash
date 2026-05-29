@@ -70,6 +70,12 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 	var err error
 
 	switch msg := msg.(type) {
+	case tea.PasteMsg:
+		if m.IsPromptConfirmationFocused() && isCreatePREditAction(m.GetPromptConfirmationAction()) {
+			m.CreatePRForm, cmd = m.CreatePRForm.Update(msg)
+			return m, cmd
+		}
+
 	case tea.KeyMsg:
 		if handled, cmd := m.HandleLocalSearchKey(msg, m.BuildRows); handled {
 			return m, cmd
@@ -94,7 +100,7 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 		}
 
 		if m.IsPromptConfirmationFocused() {
-			if m.GetPromptConfirmationAction() == "create_pr" || m.GetPromptConfirmationAction() == "edit_pr" {
+			if isCreatePREditAction(m.GetPromptConfirmationAction()) {
 				switch msg.String() {
 				case "ctrl+c", "esc":
 					m.CreatePRForm.Reset()
@@ -293,6 +299,10 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 	m.Table = table
 
 	return m, tea.Batch(cmd, searchCmd, promptCmd, tableCmd)
+}
+
+func isCreatePREditAction(action string) bool {
+	return action == "create_pr" || action == "edit_pr"
 }
 
 func (m *Model) EnrichPR(data data.EnrichedPullRequestData) {

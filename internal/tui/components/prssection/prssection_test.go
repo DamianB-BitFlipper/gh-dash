@@ -97,6 +97,27 @@ func TestCreatePRFormTabsThroughFieldsInVisualOrder(t *testing.T) {
 	require.Equal(t, 2, f.active)
 }
 
+func TestCreatePRPromptPastesIntoTitle(t *testing.T) {
+	m := newTestModel("create_pr")
+
+	_, _ = m.Update(tea.PasteMsg{Content: "pasted title"})
+
+	require.Equal(t, "pasted title", m.CreatePRForm.Title())
+	require.Empty(t, m.PromptConfirmationBox.Value())
+}
+
+func TestCreatePRPromptPastesIntoBody(t *testing.T) {
+	m := newTestModel("create_pr")
+	for range 3 {
+		_, _ = m.Update(tea.KeyPressMsg{Text: "tab"})
+	}
+
+	_, _ = m.Update(tea.PasteMsg{Content: "line one\nline two"})
+
+	require.Equal(t, "line one\nline two", m.CreatePRForm.Body())
+	require.Empty(t, m.PromptConfirmationBox.Value())
+}
+
 func TestEditPRFormHidesHeadBranchAndTabsThroughEditableFields(t *testing.T) {
 	f := newTestModel("edit_pr").CreatePRForm
 	f.SetWidth(80)

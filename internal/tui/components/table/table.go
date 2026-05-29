@@ -3,6 +3,7 @@ package table
 import (
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"charm.land/bubbles/v2/spinner"
@@ -12,21 +13,30 @@ import (
 
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/common"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/listviewport"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/selection"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/constants"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/context"
 )
 
+// tableCounter assigns each table a unique selection-region prefix so rows in
+// different tables never collide in the selection registry.
+var tableCounter int64
+
 type Model struct {
-	ctx            context.ProgramContext
-	Columns        []Column
-	Rows           []Row
-	EmptyState     *string
-	loadingMessage string
-	isLoading      bool
-	loadingSpinner spinner.Model
-	dimensions     constants.Dimensions
-	rowsViewport   listviewport.Model
-	ContentHeight  int // Optional: override content height (0 = use default from config)
+	ctx             context.ProgramContext
+	Columns         []Column
+	Rows            []Row
+	EmptyState      *string
+	loadingMessage  string
+	isLoading       bool
+	loadingSpinner  spinner.Model
+	dimensions      constants.Dimensions
+	rowsViewport    listviewport.Model
+	ContentHeight   int    // Optional: override content height (0 = use default from config)
+	selectionPrefix string // Stable per-table prefix for row selection ids.
+	// rowSelectionBlocks caches each row as a selection block (computed at sync
+	// time) so the engine can register screen bounds without re-rendering.
+	rowSelectionBlocks []selection.Block
 }
 
 type Column struct {
@@ -65,14 +75,15 @@ func NewModel(
 	loadingSpinner.Style = lipgloss.NewStyle().Foreground(ctx.Theme.SecondaryText)
 
 	return Model{
-		ctx:            ctx,
-		Columns:        columns,
-		Rows:           rows,
-		EmptyState:     emptyState,
-		loadingMessage: loadingMessage,
-		isLoading:      isLoading,
-		loadingSpinner: loadingSpinner,
-		dimensions:     dimensions,
+		ctx:             ctx,
+		Columns:         columns,
+		Rows:            rows,
+		EmptyState:      emptyState,
+		loadingMessage:  loadingMessage,
+		isLoading:       isLoading,
+		loadingSpinner:  loadingSpinner,
+		dimensions:      dimensions,
+		selectionPrefix: fmt.Sprintf("%s:%d", itemTypeLabel, atomic.AddInt64(&tableCounter, 1)),
 		rowsViewport: listviewport.NewModel(
 			ctx,
 			dimensions,
@@ -188,13 +199,47 @@ func (m *Model) SyncViewPortContent() {
 	headerColumns := m.renderHeaderColumns()
 	m.cacheColumnWidths()
 	renderedRows := make([]string, 0, len(m.Rows))
+	m.rowSelectionBlocks = make([]selection.Block, 0, len(m.Rows))
+	contentY := 0
 	for i := range m.Rows {
-		renderedRows = append(renderedRows, m.renderRow(i, headerColumns))
+		rendered := m.renderRow(i, headerColumns)
+		h := lipgloss.Height(rendered)
+		m.rowSelectionBlocks = append(m.rowSelectionBlocks, selection.Block{
+			ID:       m.rowSelectionID(i),
+			ContentY: contentY,
+			Height:   h,
+			Plain:    ansi.Strip(rendered),
+			Styled:   rendered,
+		})
+		contentY += h
+		renderedRows = append(renderedRows, rendered)
 	}
 
 	m.rowsViewport.SyncViewPort(
 		lipgloss.JoinVertical(lipgloss.Left, renderedRows...),
 	)
+}
+
+// SelectionBlocks returns each row as a selection block, positioned relative to
+// the start of the table's scrollable content.
+func (m *Model) SelectionBlocks() []selection.Block {
+	return m.rowSelectionBlocks
+}
+
+// RowsViewportYOffset is the table body's current scroll offset in rows-content
+// lines.
+func (m *Model) RowsViewportYOffset() int {
+	return m.rowsViewport.YOffset()
+}
+
+// RowsViewportHeight is the number of visible rows-content lines.
+func (m *Model) RowsViewportHeight() int {
+	return m.rowsViewport.Height()
+}
+
+// RowsWidth is the rendered width of the table rows.
+func (m *Model) RowsWidth() int {
+	return m.dimensions.Width
 }
 
 func (m *Model) SetRows(rows []Row) {
@@ -395,6 +440,10 @@ func (m *Model) renderRow(rowId int, headerColumns []string) string {
 		BorderBottom(m.ctx.Config.Theme.Ui.Table.ShowSeparator).
 		MaxWidth(m.dimensions.Width).
 		Render(lipgloss.JoinHorizontal(lipgloss.Top, renderedColumns...))
+}
+
+func (m *Model) rowSelectionID(rowId int) string {
+	return selection.ID("row", m.selectionPrefix, fmt.Sprintf("%d", rowId))
 }
 
 func (m *Model) UpdateProgramContext(ctx *context.ProgramContext) {
