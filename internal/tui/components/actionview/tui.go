@@ -349,6 +349,27 @@ func (m *Model) ScrollLogsDown() (bool, tea.Cmd) {
 	return before != m.logsViewport.YOffset(), nil
 }
 
+// IsLogsFocused reports whether the Job Logs sub-pane currently holds focus.
+// Used by mouse-wheel scrolling to pick a viewport-sized step (vs. a single
+// item step for the list sub-panes).
+func (m *Model) IsLogsFocused() bool {
+	return m.focusedPane == PaneLogs
+}
+
+// ScrollLogsBy scrolls the Job Logs viewport by lines (negative up, positive
+// down), used for mouse-wheel scrolling. It is a thin wrapper over the
+// viewport's line scrolling and does not change the selected step.
+func (m *Model) ScrollLogsBy(lines int) {
+	if m.logsViewport.GetContent() == "" {
+		return
+	}
+	if lines < 0 {
+		m.logsViewport.ScrollUp(-lines)
+		return
+	}
+	m.logsViewport.ScrollDown(lines)
+}
+
 func (m *Model) selectStep(delta int) (bool, tea.Cmd) {
 	if len(m.stepsList.Items()) == 0 {
 		return false, nil

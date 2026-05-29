@@ -170,6 +170,11 @@ type Section interface {
 	GetItemPluralForm() string
 	GetTotalCount() int
 	RowsSelectionScroll(contentTop int) selection.Scroll
+	// ScrollBy moves the row cursor by the given number of lines (negative
+	// scrolls up, positive scrolls down), mirroring repeated PrevRow/NextRow.
+	// It is used for mouse-wheel scrolling. The caller is responsible for any
+	// follow-up side effects (e.g. reacting to the viewed row changing).
+	ScrollBy(lines int)
 }
 
 type Identifier interface {
@@ -194,6 +199,7 @@ type Table interface {
 	LastItem() int
 	FetchNextPageSectionRows() []tea.Cmd
 	BuildRows() []table.Row
+	SetRows(rows []table.Row)
 	ResetRows()
 	GetIsLoading() bool
 	SetIsLoading(val bool)
@@ -387,6 +393,27 @@ func (m *BaseModel) FirstItem() int {
 
 func (m *BaseModel) LastItem() int {
 	return m.Table.LastItem()
+}
+
+// SetRows replaces the table's rendered rows. Sections call it with the result
+// of BuildRows to re-bake per-row styling (e.g. the selected-row highlight,
+// which is baked into row content rather than applied at render time).
+func (m *BaseModel) SetRows(rows []table.Row) {
+	m.Table.SetRows(rows)
+}
+
+// ScrollBy moves the row cursor by lines (negative up, positive down),
+// reusing the same cursor+viewport movement as keyboard up/down navigation.
+func (m *BaseModel) ScrollBy(lines int) {
+	if lines < 0 {
+		for range -lines {
+			m.Table.PrevItem()
+		}
+		return
+	}
+	for range lines {
+		m.Table.NextItem()
+	}
 }
 
 func (m *BaseModel) IsSearchFocused() bool {

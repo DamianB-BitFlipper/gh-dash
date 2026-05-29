@@ -97,6 +97,12 @@ func (t *TestSection) RowsSelectionScroll(contentTop int) selection.Scroll {
 	return selection.Scroll{}
 }
 
+// ScrollBy implements section.Section.
+func (t *TestSection) ScrollBy(lines int) {}
+
+// SetRows implements section.Section.
+func (t *TestSection) SetRows(rows []table.Row) {}
+
 // GetType implements section.Section.
 func (t *TestSection) GetType() string {
 	panic("unimplemented")

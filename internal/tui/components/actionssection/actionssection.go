@@ -601,6 +601,28 @@ func (m *Model) PrevRun() int {
 	return m.RunsTable.PrevItem()
 }
 
+// SetRows replaces the runs table's rendered rows. It overrides
+// BaseModel.SetRows because the Actions section renders its own RunsTable rather
+// than BaseModel.Table.
+func (m *Model) SetRows(rows []table.Row) {
+	m.RunsTable.SetRows(rows)
+}
+
+// ScrollBy moves the runs table cursor by lines (negative up, positive down),
+// used for mouse-wheel scrolling. It overrides BaseModel.ScrollBy because the
+// Actions section navigates its own RunsTable rather than BaseModel.Table.
+func (m *Model) ScrollBy(lines int) {
+	if lines < 0 {
+		for range -lines {
+			m.RunsTable.PrevItem()
+		}
+		return
+	}
+	for range lines {
+		m.RunsTable.NextItem()
+	}
+}
+
 // FocusedPane returns which of the three Actions panes currently consumes
 // navigation keys.
 func (m *Model) FocusedPane() Pane {

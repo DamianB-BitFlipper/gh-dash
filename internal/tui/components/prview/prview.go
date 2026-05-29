@@ -828,6 +828,15 @@ func (m *Model) FocusChecksLogsSearch() tea.Cmd {
 	return m.actionChecks.FocusLogsSearch()
 }
 
+// ScrollChecksLogsBy scrolls the embedded Checks-tab logs viewport by lines
+// (negative up, positive down), used for mouse-wheel scrolling.
+func (m *Model) ScrollChecksLogsBy(lines int) {
+	if !m.IsChecksTab() || m.actionChecks == nil {
+		return
+	}
+	m.actionChecks.ScrollLogsBy(lines)
+}
+
 func (m Model) IsChecksLogsSearchFocused() bool {
 	return m.actionChecks != nil && m.IsChecksTab() && m.actionChecks.IsLogsSearchFocused()
 }

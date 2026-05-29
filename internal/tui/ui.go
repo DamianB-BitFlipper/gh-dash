@@ -34,6 +34,7 @@ import (
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prrow"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prssection"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/prview"
+	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/scroll"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/section"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/selection"
 	"github.com/dlvhdr/gh-dehub/v4/internal/tui/components/sidebar"
@@ -83,9 +84,17 @@ type Model struct {
 	openPRURLPopup     *openPRURLPopup
 	visibleRefreshes   map[string]int
 	visibleRefreshGen  int
-	repoBranches       map[string]repoBranchesState
-	positionOverride   string // "" means no override, "right" or "bottom"
-	activePane         activePane
+	// scrollSettleGen debounces the expensive preview refresh that follows a
+	// mouse-wheel row scroll. Each wheel notch bumps it and schedules a
+	// scrollSettleMsg tick; onViewedRowChanged only runs once the user pauses
+	// (the tick's generation still matches), keeping fast scrolling fluid.
+	scrollSettleGen int
+	// momentum tames OS inertial scrolling so a reverse flick isn't blocked by
+	// the residual same-direction wheel-event tail (see momentumState).
+	momentum         momentumState
+	repoBranches     map[string]repoBranchesState
+	positionOverride string // "" means no override, "right" or "bottom"
+	activePane       activePane
 	// viewStates remembers per-view UI preferences (sidebar open/closed,
 	// active section, focused pane) so that navigating away and back
 	// restores the user's state for each view. Actions view's entry always
@@ -1399,6 +1408,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		{
+			// Selection regions are not registered on every frame (see
+			// View()); register them now so the click can hit-test against the
+			// current preview/rows. Once a drag begins, View keeps them
+			// registered for subsequent dragging frames.
+			m.registerSelectionRegions()
 			mouse := msg.Mouse()
 			regionID, bounds := copySelectionRegionAt(mouse.X, mouse.Y)
 			if regionID != "" {
@@ -1440,6 +1454,75 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.notify("Copied selection to clipboard")
 		}
 
+	case tea.MouseWheelMsg:
+		mouse := msg.Mouse()
+		notch := wheelNotch(mouse.Button)
+		if notch == 0 {
+			return m, nil
+		}
+		// Drop residual inertial-scroll momentum so a reverse flick takes
+		// effect immediately instead of fighting the OS's decaying same-
+		// direction event tail.
+		if !m.momentum.accept(notch, time.Now()) {
+			return m, nil
+		}
+		regionID, ok := scroll.At(mouse.X, mouse.Y)
+		if !ok {
+			return m, nil
+		}
+		// Perform the scroll on the real model (Update's receiver), keyed by
+		// the region the cursor is over. Doing it here, rather than via a
+		// closure captured during View, is essential: View runs on a value
+		// copy, so mutations to value-type fields (sidebar, prView) made there
+		// would be discarded.
+		switch regionID {
+		case selection.ID("main"):
+			if currSection != nil {
+				currSection.ScrollBy(notch * wheelRowStep)
+				// Re-bake the row content so the selected-row highlight moves
+				// to the new cursor row. Moving the cursor alone only restyles
+				// the row-level background; per-cell highlights (diff stats,
+				// title) are baked into row content by BuildRows. Without this
+				// the previously-selected row keeps a stale highlight until the
+				// next non-wheel event rebuilds the rows. This mirrors the
+				// SetRows(BuildRows()) the keyboard path runs via the section's
+				// Update fall-through.
+				currSection.SetRows(currSection.BuildRows())
+				// Defer the expensive preview refresh (sidebar re-render +
+				// enrichment fetch) until the wheel settles, so a fast scroll
+				// stays fluid instead of re-rendering the preview per notch.
+				cmd = m.scheduleScrollSettle()
+			}
+		case selection.ID("preview"):
+			m.sidebar.ScrollBy(notch * wheelViewportStep)
+		case selection.PreviewLogsID:
+			m.prView.ScrollChecksLogsBy(notch * wheelViewportStep)
+		case selection.ID("actions-workflows"):
+			if as, ok := currSection.(*actionssection.Model); ok {
+				m.scrollActionsRows(as, as.Table.PrevItem, as.Table.NextItem, notch)
+				as.Table.SetRows(as.BuildRows())
+				cmd = m.scheduleScrollSettle()
+			}
+		case selection.ID("actions-runs"):
+			if as, ok := currSection.(*actionssection.Model); ok {
+				m.scrollActionsRows(as, as.RunsTable.PrevItem, as.RunsTable.NextItem, notch)
+				as.RunsTable.SetRows(as.BuildRunRows())
+				cmd = m.scheduleScrollSettle()
+			}
+		case selection.ID("actions-details"):
+			cmd = m.scrollActionsDetailsBy(notch)
+		}
+		// Keep an in-progress copy-selection drag alive across the scroll:
+		// update its end point to the current cursor cell (clamped to the
+		// active region) so the next frame re-renders the highlight against the
+		// scrolled content instead of leaving a stale overlay.
+		if m.copySelection.dragging {
+			bounds := m.copySelectionRegionBounds()
+			x, y := clampCopySelectionPoint(mouse.X, mouse.Y, bounds)
+			m.copySelection.update(x, y)
+		}
+		return m, cmd
+
 	case tea.WindowSizeMsg:
 		m.onWindowSizeChanged(msg)
 
@@ -1454,6 +1537,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case openPRURLFetchedMsg:
 		cmds = append(cmds, m.applyOpenPRURLFetchedMsg(msg))
+
+	case scrollSettleMsg:
+		// Ignore ticks superseded by a later wheel notch; only the latest
+		// generation refreshes the preview for the row the wheel settled on.
+		if msg.generation != m.scrollSettleGen {
+			return m, nil
+		}
+		return m, m.onViewedRowChanged()
 	}
 
 	m.syncProgramContext()
@@ -1534,6 +1625,9 @@ func (m Model) View() tea.View {
 	// Clear last frame's selection region registry before re-marking regions
 	// during this render pass. Bounds are managed by bubblezone's own scan.
 	selection.Reset()
+	// Likewise clear last frame's mouse-wheel scroll regions; they are
+	// re-registered below once this frame's geometry is known.
+	scroll.Reset()
 
 	if m.ctx.Config == nil {
 		v.Content = lipgloss.Place(
@@ -1552,10 +1646,20 @@ func (m Model) View() tea.View {
 	if currSection != nil {
 		if actionsSection, ok := currSection.(*actionssection.Model); ok && m.ctx.View == config.ActionsView {
 			content = m.renderActionsThreePane(actionsSection)
+			m.registerActionsScrollRegions(actionsSection)
 		} else {
 			sectionView := selection.MarkStyled(selection.ID("main"), currSection.View())
 			sidebarView = m.sidebar.View()
-			m.registerSelectionRegions()
+			// Registering per-subcomponent selection regions is O(total
+			// preview content) (e.g. it walks every Activity card). It is only
+			// needed for an in-progress copy-selection drag: the overlay only
+			// renders while dragging, and the begin-drag click registers
+			// regions on demand. Skipping it on non-dragging frames keeps
+			// scrolling (especially long Activity threads) fluid.
+			if m.copySelection.dragging {
+				m.registerSelectionRegions()
+			}
+			m.registerScrollRegions()
 			if m.ctx.PreviewPosition == "bottom" && m.sidebar.IsOpen {
 				content = lipgloss.JoinVertical(
 					lipgloss.Left,
@@ -2050,6 +2154,63 @@ func (m *Model) markNotificationAsRead(notificationId string) {
 		Unread: false,
 	}
 	m.updateNotificationSections(readStateMsg)
+}
+
+// scheduleScrollSettle bumps the scroll-settle generation and returns a tick
+// that, after scrollSettleDelay, emits a scrollSettleMsg carrying that
+// generation. Only the latest generation's tick triggers onViewedRowChanged
+// (see the scrollSettleMsg handler), so a burst of wheel notches collapses into
+// a single preview refresh once scrolling stops.
+func (m *Model) scheduleScrollSettle() tea.Cmd {
+	m.scrollSettleGen++
+	generation := m.scrollSettleGen
+	return tea.Tick(scrollSettleDelay, func(time.Time) tea.Msg {
+		return scrollSettleMsg{generation: generation}
+	})
+}
+
+// scrollActionsRows moves an Actions table cursor by notch*wheelRowStep, calling
+// prev for upward notches and next for downward ones. The section pointer is
+// accepted to keep the call site explicit about which table is being scrolled.
+func (m *Model) scrollActionsRows(_ *actionssection.Model, prev, next func() int, notch int) {
+	steps := notch * wheelRowStep
+	if steps < 0 {
+		for range -steps {
+			prev()
+		}
+		return
+	}
+	for range steps {
+		next()
+	}
+}
+
+// scrollActionsDetailsBy scrolls the Details pane's embedded actionview by
+// forwarding synthesized up/down key presses to its currently-focused sub-pane,
+// reusing the same per-pane handling (list cursor moves, log viewport scroll,
+// and their side effects) as keyboard navigation. Lists move one item per notch;
+// the Logs sub-pane scrolls wheelViewportStep lines per notch.
+func (m *Model) scrollActionsDetailsBy(notch int) tea.Cmd {
+	if m.actionRunView == nil || notch == 0 {
+		return nil
+	}
+	code := tea.KeyDown
+	if notch < 0 {
+		code = tea.KeyUp
+	}
+	presses := 1
+	if m.actionRunView.IsLogsFocused() {
+		presses = wheelViewportStep
+	}
+	var cmds []tea.Cmd
+	for range presses {
+		view, cmd := m.actionRunView.Update(tea.KeyPressMsg{Code: code})
+		m.actionRunView = &view
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+	}
+	return tea.Batch(cmds...)
 }
 
 func (m *Model) onViewedRowChanged() tea.Cmd {
@@ -3459,6 +3620,18 @@ type visibleRefreshTick struct {
 	target     visibleRefreshTarget
 	generation int
 }
+
+// scrollSettleMsg fires after a debounce delay following a mouse-wheel row
+// scroll. It carries the generation captured when scheduled so stale ticks
+// (superseded by a newer notch) can be ignored.
+type scrollSettleMsg struct {
+	generation int
+}
+
+// scrollSettleDelay is how long after the last wheel notch the preview refresh
+// (onViewedRowChanged) runs. Short enough to feel responsive once scrolling
+// stops, long enough to coalesce a fast wheel burst into a single refresh.
+const scrollSettleDelay = 100 * time.Millisecond
 
 type visibleRefreshFetchedMsg struct {
 	target visibleRefreshTarget
